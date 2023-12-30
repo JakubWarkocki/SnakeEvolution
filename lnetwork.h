@@ -6,14 +6,14 @@
 #include <fstream>
 #include <iomanip>
 #include <string>
-#define SCOPE 27 //(2*RANGE+1)*(2*RANGE+1)
+#define SCOPE 9 //(2*RANGE+1)*(2*RANGE+1)
 using namespace std;
 
 int topScore=0;
 int antiLottery=0;
 double baseBiases[5][2*SCOPE]={0};
 double baseWeights[5][2*SCOPE][2*SCOPE]={0};
-double prec=1000;
+double prec=100;
 class lnetwork{
 
     private:
@@ -30,7 +30,7 @@ class lnetwork{
     public:
         lnetwork();
         ~lnetwork();
-        int decision(int data[]);
+        int decision(double data[]);
         void reward(int number);
 
 };
@@ -152,7 +152,7 @@ void lnetwork::reward(int number){
 }
 
 
-int lnetwork::decision(int data[]){
+int lnetwork::decision(double data[]){
     int ret;
     for(int i=0; i<(SCOPE); i++){
         input[i]=data[i];

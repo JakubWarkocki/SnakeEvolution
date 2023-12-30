@@ -12,7 +12,6 @@
 #include "lnetwork.h"
 #define boardSize 150
 //130
-#define RANGE 2
 using namespace std;
 
 
@@ -24,7 +23,7 @@ const int foodColor=0xFFFFFF;
 const int emptyColor=0x000000;
 const int barrierColor=0x888888;
 const int boosterColor=0x50F0FF;
-const int baseFoodParticles=200; //200
+const int baseFoodParticles=100; //200
 const int baseBoosters=0; //20
 const int hungerTimer=15;
 const int baseSnakes=160; //160
@@ -34,9 +33,9 @@ const int foodReward=20;
 const int boosterReward=20;
 const int wallReward=-200;
 const int selfCollisionReward=-200;
-const int otherCollisionReward=-20;
-const int huntingReward=16;
-const int headCollisionReward=-20;
+const int otherCollisionReward=-200;
+const int huntingReward=1600;
+const int headCollisionReward=-200;
 const int starvationReward=-200;
 const int survivalReward=1;
 const int startNutrientLevel=64;
@@ -72,7 +71,22 @@ int movement(int id, char direction){
         break;
 }
 }
-
+char clockwise(char direction){
+    switch(direction) {
+    case 'U':
+        return 'R';
+        break;
+    case 'R':
+        return 'D';
+        break;
+    case 'D':
+        return 'L';
+        break;
+    case 'L':
+        return 'U';
+        break;
+}
+}
 vector<int> foodParticles;
 vector<int> boosters;
 
@@ -81,7 +95,7 @@ class Snake{
     public:
         int headPosition;
         vector<int> segments;
-        int envData[(2*RANGE+1)*(2*RANGE+1)+2];
+        double envData[9];
         int snakeID;
         int color;
         char direction;
@@ -91,6 +105,7 @@ class Snake{
         int nutrientLevel;
         lnetwork controlAI;
         Snake(int startPosition, char startDirection, int colr);
+        double flag(int tile, int distance);
         void scanEnv();
         void executeMovement();
         void turnLeft();
@@ -118,7 +133,7 @@ void Snake::executeMovement(){
     if(boosterCountdown){
         color=foodColor-rand()%254-1;
         nutrientLevel--;
-        controlAI.reward(2*survivalReward);
+        controlAI.reward(3*survivalReward);
     }
     else{
         color=snakeID;
@@ -227,79 +242,58 @@ void Snake::checkCollision( Snake& snake1, Snake& snake2){
     }
 }
 
-
+double Snake::flag(int tile, int distance){
+    switch(tile){
+     case barrierColor:
+        return -1.0/distance;
+     case foodColor:
+        return 1.0/distance;
+     default:
+        return -1.0/distance;
+    }
+}
 
 void Snake::scanEnv(){
-    int X, Y, flag;
-    X=xId(headPosition);
-    Y=yId(headPosition);
-    switch(direction) {
-            case 'U':
-                Y+=RANGE;
-                break;
-            case 'R':
-                X+=RANGE;
-                break;
-            case 'D':
-                Y-=RANGE;
-                break;
-            case 'L':
-                X-=RANGE;
-                break;
-    }
-    for(int i=-RANGE; i<=RANGE; i++){
-        for(int j=-RANGE; j<=RANGE; j++){
-            switch(matrix[X+i][Y+j]){
-                case emptyColor:
-                    flag=0;
-                    break;
-                case foodColor:
-                    flag=1;
-                    break;
-                case boosterColor:
-                    flag=2;
-                    break;
-                case barrierColor:
-                    flag=-1;
-                    break;
-                default:
-                    if(matrix[X+i][Y+j]==color){
-                        flag=-1;
-                    }
-                    else{
-                        flag=-3;
-                    }
-                    break;
+    int pos, n, dist;
+    char dir;
+    dir=direction;
+    n=0;
+    for(int i=0; i<4; i++){
+        if(i!=2){
+            dist=1;
+            pos=movement(headPosition,dir);
+            while(linear[pos]==0){
+                pos=movement(pos, dir);
+                dist++;
             }
-           // envData[(i+2)*5+j+2]=flag;
-            switch(direction) {
-            case 'U':
-                envData[(i+RANGE)*(2*RANGE+1)+j+RANGE]=flag;
-                break;
-            case 'R':
-                envData[(RANGE-j)*(2*RANGE+1)+RANGE+i]=flag;
-                break;
-            case 'D':
-                envData[(RANGE-i)*(2*RANGE+1)+RANGE-j]=flag;
-                break;
-            case 'L':
-                envData[(RANGE+j)*(2*RANGE+1)+RANGE-i]=flag;
-                break;
-            }
+            envData[n]=flag(linear[pos],dist);
+            n++;
         }
+//diagonal
+        dist =1;
+        pos=movement(headPosition,dir);
+        pos=movement(headPosition,clockwise(dir));
+        while(linear[pos]==0){
+            pos=movement(pos, dir);
+            pos=movement(pos,clockwise(dir));
+            dist++;
+        }
+        envData[n]=flag(linear[pos],dist);
+        n++;
+        dir=clockwise(dir);
     }
 
     if(nutrientLevel>= maxNutrientLevel/2){
-        envData[(2*RANGE+1)*(2*RANGE+1)]=1;
+        envData[7]=1;
     }
     else if(nutrientLevel<startNutrientLevel){
-        envData[(2*RANGE+1)*(2*RANGE+1)]=-1;
+        envData[7]=-1;
     }
     else{
-        envData[(2*RANGE+1)*(2*RANGE+1)]=0;
+        envData[7]=0;
     }
 
-    envData[(2*RANGE+1)*(2*RANGE+1)+1]=boosterCountdown;
+    envData[8]=boosterCountdown;
 
 
 }
@@ -613,7 +607,7 @@ void update() {
 
 int main(){
 
-  // loadNetwork();
+    loadNetwork();
     if (!glfwInit()) {
         return -1;
     }
