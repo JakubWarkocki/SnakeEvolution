@@ -10,9 +10,9 @@
 #include <string>
 #include <sstream>
 #include "lnetwork.h"
-#define boardSize 130
+#define boardSize 150
 //130
-#define RANGE 3
+#define RANGE 2
 using namespace std;
 
 
@@ -24,22 +24,23 @@ const int foodColor=0xFFFFFF;
 const int emptyColor=0x000000;
 const int barrierColor=0x888888;
 const int boosterColor=0x50F0FF;
-const int baseFoodParticles=100; //200
-const int baseBoosters=10; //20
+const int baseFoodParticles=200; //200
+const int baseBoosters=0; //20
 const int hungerTimer=15;
-const int baseSnakes=80; //160
+const int baseSnakes=160; //160
 const int firstTreshold=32;
 const int secondTreshold=64;
 const int foodReward=20;
 const int boosterReward=20;
 const int wallReward=-200;
-const int selfCollisionReward=-40;
+const int selfCollisionReward=-200;
 const int otherCollisionReward=-20;
 const int huntingReward=16;
 const int headCollisionReward=-20;
 const int starvationReward=-200;
-const int survivalReward=5;
+const int survivalReward=1;
 const int startNutrientLevel=64;
+const int maxNutrientLevel=256;
 int boardSurface=boardSize*boardSize;
 int matrix[boardSize][boardSize];
 int linear[boardSize*boardSize+1];
@@ -80,7 +81,8 @@ class Snake{
     public:
         int headPosition;
         vector<int> segments;
-        int envData[(2*RANGE+1)*(2*RANGE+1)];
+        int envData[(2*RANGE+1)*(2*RANGE+1)+2];
+        int snakeID;
         int color;
         char direction;
         bool collision;
@@ -102,6 +104,7 @@ class Snake{
 Snake::Snake(int startPosition, char startDirection, int colr) {
     headPosition = startPosition;
     direction = startDirection;
+    snakeID = colr;
     color = colr;
     segments.push_back(startPosition);
     collision=false;
@@ -110,8 +113,17 @@ Snake::Snake(int startPosition, char startDirection, int colr) {
     nutrientLevel=startNutrientLevel;
 
 }
-void Snake::executeMovement(){   //aging
+void Snake::executeMovement(){
     nutrientLevel--;
+    if(boosterCountdown){
+        color=foodColor-rand()%254-1;
+        nutrientLevel--;
+        controlAI.reward(2*survivalReward);
+    }
+    else{
+        color=snakeID;
+    }
+    controlAI.reward(survivalReward);
     int tailMemory = segments[segments.size()-1];
     for(int i=segments.size()-1; i>0; i--){
         segments[i]=segments[i-1];
@@ -128,6 +140,7 @@ void Snake::executeMovement(){   //aging
             break;
         }
     }
+
     for(int i=0; i<boosters.size(); i++){
         if(headPosition==boosters[i]){ // UWAGA
             controlAI.reward(boosterReward);
@@ -276,12 +289,25 @@ void Snake::scanEnv(){
         }
     }
 
+    if(nutrientLevel>= maxNutrientLevel/2){
+        envData[(2*RANGE+1)*(2*RANGE+1)]=1;
+    }
+    else if(nutrientLevel<startNutrientLevel){
+        envData[(2*RANGE+1)*(2*RANGE+1)]=-1;
+    }
+    else{
+        envData[(2*RANGE+1)*(2*RANGE+1)]=0;
+    }
+
+    envData[(2*RANGE+1)*(2*RANGE+1)+1]=boosterCountdown;
+
+
 }
 
 void Snake::aiControl(){
     scanEnv();
     int dec=controlAI.decision(envData);
-    switch(dec){
+    switch(dec%3){
         case 0:
             turnLeft();
             break;
@@ -290,6 +316,10 @@ void Snake::aiControl(){
             break;
         case 2:
             break;
+    }
+    if(dec>=3){
+        boosterCountdown++;
+        cout << "boost activated\n";
     }
 }
 
@@ -583,7 +613,7 @@ void update() {
 
 int main(){
 
-    loadNetwork();
+  // loadNetwork();
     if (!glfwInit()) {
         return -1;
     }

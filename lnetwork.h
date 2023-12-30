@@ -6,7 +6,7 @@
 #include <fstream>
 #include <iomanip>
 #include <string>
-#define SCOPE 49 //(2*RANGE+1)*(2*RANGE+1)
+#define SCOPE 27 //(2*RANGE+1)*(2*RANGE+1)
 using namespace std;
 
 int topScore=0;
@@ -153,19 +153,25 @@ void lnetwork::reward(int number){
 
 
 int lnetwork::decision(int data[]){
+    int ret;
     for(int i=0; i<(SCOPE); i++){
         input[i]=data[i];
     }
     calculateOutput();
     if(output[0]>output[1]&&output[0]>output[2]){
-        return 0;
+        ret=0;
     }
     else if(output[1]>output[0]&&output[1]>output[2]){
-        return 1;
+        ret=1;
     }
     else{
-        return 2;
+        ret=2;
     }
+
+    if(output[3]>output[4]){
+        ret+=3;
+    }
+    return ret;
 }
 
 
