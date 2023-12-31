@@ -94,7 +94,6 @@ void lnetwork::calculateOutput(){
 
 lnetwork::lnetwork(){
     int cloneBase=rand()%2;
-    cout << "CONSTRUCTOR TOP SCORE=" << topScore << " \n";
     score=0;
     for(int i = 0; i < 5; i++){
         for(int j = 0; j < 2*(SCOPE); j++){
@@ -109,41 +108,12 @@ lnetwork::lnetwork(){
             }
         }
     }
-    if(cloneBase>0){
-        mutateWeights();
-        mutateBiases();
-    }
 
 
 }
 
 
 lnetwork::~lnetwork(){
-    cout << "DESTRUCTOR EXECUTED SCORE=" << score << " \n";
-    if(score>topScore){
-        antiLottery=0;
-        topScore=score;
-                for(int i = 0; i < 5; i++){
-            for(int j = 0; j < 2*(SCOPE); j++){
-                baseBiases[i][j]=biases[i][j];
-            }
-        }
-        for(int i = 0; i < 5; i++){
-            for(int j = 0; j < 2*(SCOPE); j++){
-                for(int y = 0; y < 2*(SCOPE); y++){
-                  baseWeights[i][j][y]=weights[i][j][y];
-                }
-            }
-        }
-    }
-    else{
-        antiLottery++;
-        if(antiLottery>=100){
-         topScore*=9;
-         topScore/=10;
-         antiLottery=0;
-        }
-    }
 }
 
 
@@ -202,24 +172,5 @@ void loadNetwork(){
 
 }
 
-void saveNetwork(){
-
-    ofstream save("nnsave.txt");
-    save << topScore<<'\n';
-    save << fixed << setprecision(9);
-    for(int i = 0; i < 5; i++){
-        for(int j = 0; j < 2*(SCOPE); j++){
-            save<<baseBiases[i][j]<<'\n';
-        }
-    }
-    for(int i = 0; i < 5; i++){
-        for(int j = 0; j < 2*(SCOPE); j++){
-            for(int y = 0; y < 2*(SCOPE); y++){
-               save<<baseWeights[i][j][y]<<'\n';
-            }
-        }
-    }
-
-}
 
 #endif // LNETWORK_H

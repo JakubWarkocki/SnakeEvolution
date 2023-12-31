@@ -9,37 +9,31 @@
 #include<random>
 #include <string>
 #include <sstream>
+#include <chrono>
 #include "lnetwork.h"
-#define boardSize 150
+#define boardSize 50
 //130
 using namespace std;
 
 
 
-
+const int frameTime = 50;
 
 //const int boardSize=100;
 const int foodColor=0xFFFFFF;
 const int emptyColor=0x000000;
 const int barrierColor=0x888888;
 const int boosterColor=0x50F0FF;
-const int baseFoodParticles=100; //200
+const int baseFoodParticles=2; //200
 const int baseBoosters=0; //20
 const int hungerTimer=15;
-const int baseSnakes=160; //160
+const int baseSnakes=3; //160
 const int firstTreshold=32;
 const int secondTreshold=64;
-const int foodReward=20;
-const int boosterReward=20;
-const int wallReward=-200;
-const int selfCollisionReward=-200;
-const int otherCollisionReward=-200;
-const int huntingReward=1600;
-const int headCollisionReward=-200;
-const int starvationReward=-200;
-const int survivalReward=1;
 const int startNutrientLevel=64;
 const int maxNutrientLevel=256;
+int playerTurn;
+int playerBoost;
 int boardSurface=boardSize*boardSize;
 int matrix[boardSize][boardSize];
 int linear[boardSize*boardSize+1];
@@ -93,6 +87,7 @@ vector<int> boosters;
 
 class Snake{
     public:
+        bool player;
         int headPosition;
         vector<int> segments;
         double envData[9];
@@ -117,6 +112,7 @@ class Snake{
 };
 
 Snake::Snake(int startPosition, char startDirection, int colr) {
+    player = false;
     headPosition = startPosition;
     direction = startDirection;
     snakeID = colr;
@@ -133,12 +129,10 @@ void Snake::executeMovement(){
     if(boosterCountdown){
         color=foodColor-rand()%254-1;
         nutrientLevel--;
-        controlAI.reward(3*survivalReward);
     }
     else{
         color=snakeID;
     }
-    controlAI.reward(survivalReward);
     int tailMemory = segments[segments.size()-1];
     for(int i=segments.size()-1; i>0; i--){
         segments[i]=segments[i-1];
@@ -147,7 +141,6 @@ void Snake::executeMovement(){
     segments[0]=headPosition;
     for(int i=0; i<foodParticles.size(); i++){
         if(headPosition==foodParticles[i]){ // UWAGA
-            controlAI.reward(foodReward);
             nutrientLevel+=64;
             nutrientLevel=min(nutrientLevel,256);
             segments.push_back(tailMemory);
@@ -158,7 +151,6 @@ void Snake::executeMovement(){
 
     for(int i=0; i<boosters.size(); i++){
         if(headPosition==boosters[i]){ // UWAGA
-            controlAI.reward(boosterReward);
             nutrientLevel+=128;
             nutrientLevel=min(nutrientLevel,256);
             boosterCountdown=12;
@@ -167,11 +159,9 @@ void Snake::executeMovement(){
         }
     }
     if(linear[headPosition]==barrierColor){
-        controlAI.reward(wallReward);
         collision=true;
     }
     if(nutrientLevel<=0){
-        controlAI.reward(starvationReward);
         collision=true;
     }
 }
@@ -214,31 +204,23 @@ void Snake::checkCollision( Snake& snake1, Snake& snake2){
     for(int i=1; i<snake1.segments.size(); i++){
         if(snake1.headPosition==snake1.segments[i]){
             snake1.collision=true;
-            snake1.controlAI.reward(selfCollisionReward);
         }
         if(snake2.headPosition==snake1.segments[i]){
             snake2.collision=true;
-            snake1.controlAI.reward(huntingReward);
-            snake2.controlAI.reward(otherCollisionReward);
         }
     }
     for(int i=1; i<snake2.segments.size(); i++){
         if(snake2.headPosition==snake2.segments[i]){
             snake2.collision=true;
-            snake2.controlAI.reward(selfCollisionReward);
         }
         if(snake1.headPosition==snake2.segments[i]){
             snake1.collision=true;
-            snake2.controlAI.reward(huntingReward);
-            snake1.controlAI.reward(otherCollisionReward);
         }
     }
 
     if(snake1.headPosition==snake2.headPosition&&snake1.color!=snake2.color){
             snake1.collision=true;
             snake2.collision=true;
-            snake1.controlAI.reward(headCollisionReward);
-            snake2.controlAI.reward(headCollisionReward);
     }
 }
 
@@ -299,21 +281,36 @@ void Snake::scanEnv(){
 }
 
 void Snake::aiControl(){
-    scanEnv();
-    int dec=controlAI.decision(envData);
-    switch(dec%3){
-        case 0:
-            turnLeft();
-            break;
-        case 1:
-            turnRight();
-            break;
-        case 2:
-            break;
-    }
-    if(dec>=3){
-        boosterCountdown++;
-        cout << "boost activated\n";
+    if(!player){
+        scanEnv();
+        int dec=controlAI.decision(envData);
+        switch(dec%3){
+            case 0:
+                turnLeft();
+                break;
+            case 1:
+                turnRight();
+                break;
+            case 2:
+                break;
+        }
+        if(dec>=3){
+            boosterCountdown++;
+        }
+        }
+    else{
+        switch(playerTurn){
+            case -1:
+                turnLeft();
+                playerTurn=0;
+                break;
+            case 1:
+                turnRight();
+                playerTurn=0;
+                break;
+            case 0:
+                break;
+        }
     }
 }
 
@@ -499,7 +496,6 @@ void purgeDeadSnakes(){
             }
             //snakes.erase(remove(snakes.begin()+j));
             int randDir=rand()%3;
-            snakes[j].controlAI.~lnetwork();
             Snake aisnake(randomEmptyTile(),'U', randomColor());
             snakes[j]=aisnake;
             switch(randDir){
@@ -559,6 +555,15 @@ void barrierSetup(){
 }
 
 bool boostTick=false;
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+        playerTurn=1;
+    else if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+        playerTurn=-1;
+}
+
 void update() {
     if(rand()%100==0){
         barrierSetup();
@@ -579,6 +584,8 @@ void update() {
         checkAllCollisions();
         purgeDeadSnakes();
         boostTick=true;
+        renderMatrix();
+        displayMatrix();
     }
     else{
         if(snakes[0].boosterCountdown){
@@ -598,6 +605,8 @@ void update() {
         checkAllCollisions();
         purgeDeadSnakes();
         boostTick=false;
+        renderMatrix();
+        displayMatrix();
     }
     tickHungerCountdowns();
 
@@ -619,6 +628,8 @@ int main(){
     }
 
     glfwMakeContextCurrent(window);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSwapInterval(1);
     glViewport(0, 0, 500, 500);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -632,6 +643,7 @@ int main(){
         addAiSnake();
         renderLinear();
     }
+    snakes[0].player=true;
     while(foodParticles.size()<baseFoodParticles){
         regenerateFood();
     }
@@ -640,11 +652,12 @@ int main(){
     }
     displayMatrix();
     while (!glfwWindowShouldClose(window)) {
+        snakes[0].player=true;
+        glfwPollEvents();
         update();
         glfwSwapBuffers(window);
-        glfwPollEvents();
+        usleep(frameTime*1000);
     }
-    saveNetwork();
 
     glfwTerminate();
 
