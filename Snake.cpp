@@ -5,13 +5,16 @@
 #include <unistd.h>
 #include <cmath>
 #include<GL/gl.h>
+#include<GL/glu.h>
 #include<GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include<random>
 #include <string>
 #include <sstream>
 #include <chrono>
 #include "lnetwork.h"
-#define boardSize 50
+#define boardSize 160
 //130
 using namespace std;
 
@@ -24,16 +27,16 @@ const int foodColor=0xFFFFFF;
 const int emptyColor=0x000000;
 const int barrierColor=0x888888;
 const int boosterColor=0x50F0FF;
-const int baseFoodParticles=2; //200
+const int baseFoodParticles=70; //200
 const int baseBoosters=0; //20
 const int hungerTimer=15;
-const int baseSnakes=3; //160
+const int baseSnakes=50; //160
 const int firstTreshold=32;
 const int secondTreshold=64;
 const int startNutrientLevel=64;
 const int maxNutrientLevel=256;
-int playerTurn;
-int playerBoost;
+int playerTurn=0;
+int playerBoost=0;
 int boardSurface=boardSize*boardSize;
 int matrix[boardSize][boardSize];
 int linear[boardSize*boardSize+1];
@@ -295,7 +298,7 @@ void Snake::aiControl(){
                 break;
         }
         if(dec>=3){
-            boosterCountdown++;
+            boosterCountdown=1;
         }
         }
     else{
@@ -310,6 +313,9 @@ void Snake::aiControl(){
                 break;
             case 0:
                 break;
+        }
+        if(playerBoost){
+            boosterCountdown=1;
         }
     }
 }
@@ -433,12 +439,12 @@ void executeBoosterAiControl(){
 
 float tileColor[3] = {0.0, 0.0, 0.0};
 
-void getTileColor(int tile){
-    tileColor[2]=(float)(tile%256)/(float)(255);
+void getTileColor(int tile, float brightness){
+    tileColor[2]=(float)(tile%256)/(float)(255)*brightness;
     tile /=256;
-    tileColor[1]=(float)(tile%256)/(float)(255);
+    tileColor[1]=(float)(tile%256)/(float)(255)*brightness;
     tile /=256;
-    tileColor[0]=(float)(tile%256)/(float)(255);
+    tileColor[0]=(float)(tile%256)/(float)(255)*brightness;
 }
 
 int randomColor(){
@@ -518,27 +524,125 @@ void purgeDeadSnakes(){
     }
 }
 
-void displayMatrix() {
-    glClear(GL_COLOR_BUFFER_BIT);
-    float squareSize = (2.0)/boardSize;
+void renderBar(int nl) {
+    // Set up orthographic projection for 2D rendering
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, 800, 0, 600);   // Adjust based on your window size
+
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+
+    float barWidth = (float)(nl) / 256.0f * 800.0f;  // Adjust as needed
+    float red = min(1.0f, ((float)(256 - nl) / 256.0f) * 2.0f);
+    float green = min(1.0f, ((float)(nl) / 256.0f) * 2.0f);
+
+    // Render 2D bar at the top
+    glBegin(GL_QUADS);
+    glColor3f(red, green, 0.0f);
+    glVertex2f(0.0f, 590.0f);                // Top-left corner
+    glVertex2f(barWidth, 590.0f);            // Top-right corner (width depends on nutrientLevel)
+    glVertex2f(barWidth, 600.0f);            // Bottom-right corner
+    glVertex2f(0.0f, 600.0f);                // Bottom-left corner
+    glEnd();
+}
+
+
+void displayMatrix() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // Add GL_DEPTH_BUFFER_BIT for depth testing
+    glEnable(GL_DEPTH_TEST);
+    float squareSize = (2.0) / boardSize;
+    float playerX=(-1+squareSize*xId(snakes[0].headPosition))+squareSize/2;
+    float playerY=(-1+squareSize*yId(snakes[0].headPosition))+squareSize/2;
+    float deltaX, deltaY;
+    switch(snakes[0].direction) {
+        case 'U':
+            deltaY=squareSize;
+            deltaX=0;
+            break;
+        case 'R':
+            deltaY=0;
+            deltaX=squareSize;
+            break;
+        case 'D':
+            deltaY=-squareSize;
+            deltaX=0;
+            break;
+        case 'L':
+            deltaY=0;
+            deltaX=-squareSize;
+            break;
+    }
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(70.0, 1, squareSize, 100.0);  // Adjust these values based on your scene requirements
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(playerX-(2+snakes[0].segments.size())*deltaX, playerY-(2+snakes[0].segments.size())*deltaY, (2+snakes[0].segments.size()/2)*squareSize, playerX+3*deltaX, playerY+3*deltaY, 0.0, 0.0, 0.0, 1.0);
     for (int i = 0; i < boardSize; i++) {
         for (int j = 0; j < boardSize; j++) {
-            getTileColor(matrix[i][j]);
-            glLoadIdentity();
+            glPushMatrix();
             glTranslatef(-1 + i * squareSize, -1 + j * squareSize, 0.0);
             glColor3fv(tileColor);
-            glBegin(GL_POLYGON);
-            glVertex2f(0.0, 0.0);
-            glVertex2f(squareSize, 0.0);
-            glVertex2f(squareSize, squareSize);
-            glVertex2f(0.0, squareSize);
-            glEnd();
+            if(matrix[i][j]!=emptyColor){
+                glBegin(GL_QUADS);
+
+                // Bottom face
+                getTileColor(matrix[i][j],0.1);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, 0.0, 0.0);
+                glVertex3f(squareSize, 0.0, 0.0);
+                glVertex3f(squareSize, squareSize, 0.0);
+                glVertex3f(0.0, squareSize, 0.0);
+
+                // face
+                getTileColor(matrix[i][j],0.67);
+                glColor3fv(tileColor);
+                glVertex3f(squareSize, 0.0, squareSize);
+                glVertex3f(squareSize, 0.0, 0.0);
+                glVertex3f(squareSize, squareSize, 0.0);
+                glVertex3f(squareSize, squareSize, squareSize);
+
+                //  face face
+                getTileColor(matrix[i][j],0.67);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, 0.0, squareSize);
+                glVertex3f(0.0, 0.0, 0.0);
+                glVertex3f(0.0, squareSize, 0.0);
+                glVertex3f(0.0, squareSize, squareSize);
+
+                // face
+                getTileColor(matrix[i][j],0.5);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, squareSize, squareSize);
+                glVertex3f(squareSize, squareSize, squareSize);
+                glVertex3f(squareSize, squareSize, 0.0);
+                glVertex3f(0.0, squareSize, 0.0);
+
+                // face
+                getTileColor(matrix[i][j],0.5);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, 0.0, squareSize);
+                glVertex3f(squareSize, 0.0, squareSize);
+                glVertex3f(squareSize, 0.0, 0.0);
+                glVertex3f(0.0, 0.0, 0.0);
+
+                // Top face
+                getTileColor(matrix[i][j],1);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, 0.0, squareSize);
+                glVertex3f(squareSize, 0.0, squareSize);
+                glVertex3f(squareSize, squareSize, squareSize);
+                glVertex3f(0.0, squareSize, squareSize);
+                glEnd();
+            }
+            glPopMatrix();
         }
     }
 
-            glFlush();
+    glLoadIdentity();
+    renderBar(snakes[0].nutrientLevel);
+    glFlush();
 }
 
 void addAiSnake(){
@@ -562,6 +666,14 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         playerTurn=1;
     else if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
         playerTurn=-1;
+
+
+    if (button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS) {
+        playerBoost=1;
+    }
+    else if(button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_RELEASE) {
+        playerBoost=0;
+    }
 }
 
 void update() {
@@ -569,7 +681,6 @@ void update() {
         barrierSetup();
     }
     if(!boostTick){
-        pressed=false;
         renderLinear();
         while(foodParticles.size()<baseFoodParticles){
             regenerateFood();
@@ -578,19 +689,16 @@ void update() {
             regenerateBoosters();
         }
         renderMatrix();
-        displayMatrix();
+      //  displayMatrix();
         executeAiControl();
         executeAllMovements();
         checkAllCollisions();
         purgeDeadSnakes();
         boostTick=true;
-        renderMatrix();
-        displayMatrix();
+       // renderMatrix();
+       // displayMatrix();
     }
     else{
-        if(snakes[0].boosterCountdown){
-            pressed=false;
-        }
         renderLinear();
         while(foodParticles.size()<baseFoodParticles){
             regenerateFood();
@@ -599,14 +707,14 @@ void update() {
             regenerateBoosters();
         }
         renderMatrix();
-        displayMatrix();
+      // displayMatrix();
         executeBoosterAiControl();
         executeBoosterMovements();
         checkAllCollisions();
         purgeDeadSnakes();
         boostTick=false;
-        renderMatrix();
-        displayMatrix();
+      //  renderMatrix();
+       // displayMatrix();
     }
     tickHungerCountdowns();
 
@@ -620,23 +728,15 @@ int main(){
     if (!glfwInit()) {
         return -1;
     }
-
-    GLFWwindow* window = glfwCreateWindow(500, 500, "Snake", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1000, 1000, "Snake", NULL, NULL);
     if (!window) {
         glfwTerminate();
         return -1;
     }
-
     glfwMakeContextCurrent(window);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSwapInterval(1);
-    glViewport(0, 0, 500, 500);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
-
     glShadeModel(GL_SMOOTH);
-
     barrierSetup();
     renderLinear();
     while(snakes.size()<baseSnakes){;
@@ -650,11 +750,15 @@ int main(){
     while(boosters.size()<baseBoosters){
         regenerateBoosters();
     }
+    renderMatrix();
     displayMatrix();
     while (!glfwWindowShouldClose(window)) {
         snakes[0].player=true;
         glfwPollEvents();
         update();
+        renderLinear();
+        renderMatrix();
+        displayMatrix();
         glfwSwapBuffers(window);
         usleep(frameTime*1000);
     }
