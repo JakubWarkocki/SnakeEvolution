@@ -14,23 +14,23 @@
 #include <sstream>
 #include <chrono>
 #include "lnetwork.h"
-#define boardSize 160
+#define boardSize 500
 //130
 using namespace std;
 
 
 
-const int frameTime = 50;
+const int frameTime = 25;
 
 //const int boardSize=100;
 const int foodColor=0xFFFFFF;
 const int emptyColor=0x000000;
 const int barrierColor=0x888888;
 const int boosterColor=0x50F0FF;
-const int baseFoodParticles=70; //200
+const int baseFoodParticles=500; //200
 const int baseBoosters=0; //20
 const int hungerTimer=15;
-const int baseSnakes=50; //160
+const int baseSnakes=200; //160
 const int firstTreshold=32;
 const int secondTreshold=64;
 const int startNutrientLevel=64;
@@ -93,7 +93,7 @@ class Snake{
         bool player;
         int headPosition;
         vector<int> segments;
-        double envData[9];
+        double envData[SCOPE];
         int snakeID;
         int color;
         char direction;
@@ -278,27 +278,30 @@ void Snake::scanEnv(){
         envData[7]=0;
     }
 
-    envData[8]=boosterCountdown;
 
 
 }
 
 void Snake::aiControl(){
-    if(!player){
-        scanEnv();
-        int dec=controlAI.decision(envData);
-        switch(dec%3){
-            case 0:
-                turnLeft();
-                break;
-            case 1:
-                turnRight();
-                break;
-            case 2:
-                break;
-        }
-        if(dec>=3){
-            boosterCountdown=1;
+        if(!player){
+            scanEnv();
+            int dec=controlAI.decision(envData);
+            if(dec>=3){
+                boosterCountdown=1;
+            }
+            else{
+                boosterCountdown=0;
+            }
+            dec%=3;
+            switch(dec%3){
+                case 0:
+                    turnLeft();
+                    break;
+                case 1:
+                    turnRight();
+                    break;
+                case 2:
+                    break;
         }
         }
     else{
@@ -525,31 +528,30 @@ void purgeDeadSnakes(){
 }
 
 void renderBar(int nl) {
-    // Set up orthographic projection for 2D rendering
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(0, 800, 0, 600);   // Adjust based on your window size
+    gluOrtho2D(0, 800, 0, 600);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    float barWidth = (float)(nl) / 256.0f * 800.0f;  // Adjust as needed
+    float barWidth = (float)(nl) / 256.0f * 800.0f;
     float red = min(1.0f, ((float)(256 - nl) / 256.0f) * 2.0f);
     float green = min(1.0f, ((float)(nl) / 256.0f) * 2.0f);
 
     // Render 2D bar at the top
     glBegin(GL_QUADS);
     glColor3f(red, green, 0.0f);
-    glVertex2f(0.0f, 590.0f);                // Top-left corner
-    glVertex2f(barWidth, 590.0f);            // Top-right corner (width depends on nutrientLevel)
-    glVertex2f(barWidth, 600.0f);            // Bottom-right corner
-    glVertex2f(0.0f, 600.0f);                // Bottom-left corner
+    glVertex2f(0.0f, 590.0f);
+    glVertex2f(barWidth, 590.0f);
+    glVertex2f(barWidth, 600.0f);
+    glVertex2f(0.0f, 600.0f);
     glEnd();
 }
 
 
 void displayMatrix() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // Add GL_DEPTH_BUFFER_BIT for depth testing
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     float squareSize = (2.0) / boardSize;
     float playerX=(-1+squareSize*xId(snakes[0].headPosition))+squareSize/2;
@@ -575,7 +577,7 @@ void displayMatrix() {
     }
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(70.0, 1, squareSize, 100.0);  // Adjust these values based on your scene requirements
+    gluPerspective(80.0, 1, squareSize, 100.0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(playerX-(2+snakes[0].segments.size())*deltaX, playerY-(2+snakes[0].segments.size())*deltaY, (2+snakes[0].segments.size()/2)*squareSize, playerX+3*deltaX, playerY+3*deltaY, 0.0, 0.0, 0.0, 1.0);

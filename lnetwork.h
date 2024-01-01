@@ -6,22 +6,23 @@
 #include <fstream>
 #include <iomanip>
 #include <string>
-#define SCOPE 9 //(2*RANGE+1)*(2*RANGE+1)
+#define SCOPE 8
+#define LAYERS 3
 using namespace std;
 
 int topScore=0;
 int antiLottery=0;
-double baseBiases[5][2*SCOPE]={0};
-double baseWeights[5][2*SCOPE][2*SCOPE]={0};
+double baseBiases[LAYERS][2*SCOPE]={0};
+double baseWeights[LAYERS][2*SCOPE][2*SCOPE]={0};
 double prec=100;
 class lnetwork{
 
     private:
         double input[(SCOPE)];
-        double output[3];
-        double biases[5][2*SCOPE];
-        double weights[5][2*SCOPE][2*SCOPE]; //Destination layer (in calcspace) ,Destination Id (in calcspace) ,Source ID (in calcspace or input)
-        double calcSpace[5][2*(SCOPE)];
+        double output[4];
+        double biases[LAYERS][2*SCOPE];
+        double weights[LAYERS][2*SCOPE][2*SCOPE]; //Destination layer (in calcspace) ,Destination Id (in calcspace) ,Source ID (in calcspace or input)
+        double calcSpace[LAYERS][2*(SCOPE)];
         int score;
         double neuronFunction(double x);
         void mutateBiases();
@@ -43,7 +44,7 @@ double lnetwork::neuronFunction(double x){
 }
 
 void lnetwork::mutateBiases(){
-    for(int i=0; i<4; i++){
+    for(int i=0; i<LAYERS-1; i++){
         for(int j=0; j<2*(SCOPE); j++){
             biases[i][j]+=(rand()%201-100)/prec;
         }
@@ -51,7 +52,7 @@ void lnetwork::mutateBiases(){
 }
 
 void lnetwork::mutateWeights(){
-    for(int i=0; i<5; i++){
+    for(int i=0; i<LAYERS; i++){
         for(int j=0; j<2*(SCOPE); j++){
             for(int y=0; y<2*(SCOPE); y++){
               weights[i][j][y]+=(rand()%201-100)/prec;
@@ -63,7 +64,7 @@ void lnetwork::mutateWeights(){
 void lnetwork::calculateOutput(){
     int i;
     //prepare calc space
-    for(i=0; i<5; i++){
+    for(i=0; i<LAYERS; i++){
         for(int j=0; j<2*(SCOPE); j++){
             calcSpace[i][j]=biases[i][j];
         }
@@ -77,7 +78,7 @@ void lnetwork::calculateOutput(){
         calcSpace[i][j]=neuronFunction(calcSpace[i][j]);
     }
     //calculate remaining calc space layers
-    for(i=1; i<5; i++){
+    for(i=1; i<LAYERS; i++){
         for(int j=0; j<2*(SCOPE); j++){
             for(int y=0; y<2*(SCOPE); y++){
                 calcSpace[i][j]+=weights[i][j][y]*calcSpace[i-1][y];
@@ -86,22 +87,20 @@ void lnetwork::calculateOutput(){
         }
     }
     //fill output
-    i=4;
-    for(int j=0; j<3; j++){
+    i=LAYERS-1;
+    for(int j=0; j<4; j++){
         output[j]=calcSpace[i][j];
     }
 }
 
 lnetwork::lnetwork(){
-    int cloneBase=rand()%2;
-    score=0;
-    for(int i = 0; i < 5; i++){
+    for(int i = 0; i < LAYERS; i++){
         for(int j = 0; j < 2*(SCOPE); j++){
             biases[i][j]=baseBiases[i][j];
             calcSpace[i][j]=0;
         }
     }
-    for(int i = 0; i < 5; i++){
+    for(int i = 0; i < LAYERS; i++){
         for(int j = 0; j < 2*(SCOPE); j++){
             for(int y = 0; y < 2*(SCOPE); y++){
                 weights[i][j][y]=baseWeights[i][j][y];
@@ -138,7 +137,7 @@ int lnetwork::decision(double data[]){
         ret=2;
     }
 
-    if(output[3]>output[4]){
+    if(output[3]>=0){
         ret+=3;
     }
     return ret;
