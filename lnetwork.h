@@ -151,14 +151,14 @@ void loadNetwork(){
     getline(load,inpt);
     stringstream str(inpt);
     str >> topScore;
-    for(int i = 0; i < 5; i++){
+    for(int i = 0; i < LAYERS-1; i++){
         for(int j = 0; j < 2*(SCOPE); j++){
             getline(load,inpt);
             stringstream str(inpt);
             str>>baseBiases[i][j];
         }
     }
-    for(int i = 0; i < 5; i++){
+    for(int i = 0; i < LAYERS; i++){
         for(int j = 0; j < 2*(SCOPE); j++){
             for(int y = 0; y < 2*(SCOPE); y++){
                 getline(load,inpt);
