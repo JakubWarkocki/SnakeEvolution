@@ -31,15 +31,19 @@ const int baseFoodParticles=500; //200
 const int baseBoosters=0; //20
 const int hungerTimer=15;
 const int baseSnakes=200; //160
-const int firstTreshold=32;
-const int secondTreshold=64;
+const int firstTreshold=1000;
+const int secondTreshold=1000;
 const int startNutrientLevel=64;
 const int maxNutrientLevel=256;
 int playerTurn=0;
 int playerBoost=0;
 int boardSurface=boardSize*boardSize;
 int matrix[boardSize][boardSize];
+int animationMatrix[boardSize][boardSize];
 int linear[boardSize*boardSize+1];
+
+
+
 int positionId(int x, int y){
     return x+(boardSize*y)+1;
 }
@@ -549,7 +553,9 @@ void renderBar(int nl) {
     glEnd();
 }
 
-
+void animateTile(int code, int stage){
+// - ->disappear towards + -> appear towards 1-x+('R') 2-
+}
 void displayMatrix() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
@@ -557,6 +563,8 @@ void displayMatrix() {
     float playerX=(-1+squareSize*xId(snakes[0].headPosition))+squareSize/2;
     float playerY=(-1+squareSize*yId(snakes[0].headPosition))+squareSize/2;
     float deltaX, deltaY;
+    int cameraDistanceFactor=snakes[0].segments.size();
+    cameraDistanceFactor=min(cameraDistanceFactor,32);
     switch(snakes[0].direction) {
         case 'U':
             deltaY=squareSize;
@@ -580,24 +588,72 @@ void displayMatrix() {
     gluPerspective(80.0, 1, squareSize, 100.0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    gluLookAt(playerX-(2+snakes[0].segments.size())*deltaX, playerY-(2+snakes[0].segments.size())*deltaY, (2+snakes[0].segments.size()/2)*squareSize, playerX+3*deltaX, playerY+3*deltaY, 0.0, 0.0, 0.0, 1.0);
+    gluLookAt(playerX-(4+cameraDistanceFactor)*deltaX, playerY-(4+cameraDistanceFactor)*deltaY, (4+cameraDistanceFactor/2)*squareSize, playerX+3*deltaX, playerY+3*deltaY, 0.0, 0.0, 0.0, 1.0);
     for (int i = 0; i < boardSize; i++) {
         for (int j = 0; j < boardSize; j++) {
             glPushMatrix();
             glTranslatef(-1 + i * squareSize, -1 + j * squareSize, 0.0);
             glColor3fv(tileColor);
-            if(matrix[i][j]!=emptyColor){
+           if(matrix[i][j]==barrierColor){
                 glBegin(GL_QUADS);
 
-                // Bottom face
+                // Bottom face not drawn
+                /*
                 getTileColor(matrix[i][j],0.1);
                 glColor3fv(tileColor);
                 glVertex3f(0.0, 0.0, 0.0);
                 glVertex3f(squareSize, 0.0, 0.0);
                 glVertex3f(squareSize, squareSize, 0.0);
+                glVertex3f(0.0, squareSize, 0.0); */
+
+                getTileColor(matrix[i][j],0.67);
+                glColor3fv(tileColor);
+                glVertex3f(squareSize, 0.0, 2*squareSize);
+                glVertex3f(squareSize, 0.0, 0.0);
+                glVertex3f(squareSize, squareSize, 0.0);
+                glVertex3f(squareSize, squareSize, 2*squareSize);
+
+                getTileColor(matrix[i][j],0.67);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, 0.0, 2*squareSize);
+                glVertex3f(0.0, 0.0, 0.0);
+                glVertex3f(0.0, squareSize, 0.0);
+                glVertex3f(0.0, squareSize, 2*squareSize);
+
+                getTileColor(matrix[i][j],0.5);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, squareSize, 2*squareSize);
+                glVertex3f(squareSize, squareSize, 2*squareSize);
+                glVertex3f(squareSize, squareSize, 0.0);
                 glVertex3f(0.0, squareSize, 0.0);
 
-                // face
+                getTileColor(matrix[i][j],0.5);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, 0.0, 2*squareSize);
+                glVertex3f(squareSize, 0.0, 2*squareSize);
+                glVertex3f(squareSize, 0.0, 0.0);
+                glVertex3f(0.0, 0.0, 0.0);
+
+                getTileColor(matrix[i][j],1);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, 0.0, 2*squareSize);
+                glVertex3f(squareSize, 0.0, 2*squareSize);
+                glVertex3f(squareSize, squareSize, 2*squareSize);
+                glVertex3f(0.0, squareSize, 2*squareSize);
+                glEnd();
+            }
+            else if(matrix[i][j]!=emptyColor){
+                glBegin(GL_QUADS);
+
+                // Bottom face not drawn
+                /*
+                getTileColor(matrix[i][j],0.1);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, 0.0, 0.0);
+                glVertex3f(squareSize, 0.0, 0.0);
+                glVertex3f(squareSize, squareSize, 0.0);
+                glVertex3f(0.0, squareSize, 0.0); */
+
                 getTileColor(matrix[i][j],0.67);
                 glColor3fv(tileColor);
                 glVertex3f(squareSize, 0.0, squareSize);
@@ -605,7 +661,6 @@ void displayMatrix() {
                 glVertex3f(squareSize, squareSize, 0.0);
                 glVertex3f(squareSize, squareSize, squareSize);
 
-                //  face face
                 getTileColor(matrix[i][j],0.67);
                 glColor3fv(tileColor);
                 glVertex3f(0.0, 0.0, squareSize);
@@ -613,7 +668,6 @@ void displayMatrix() {
                 glVertex3f(0.0, squareSize, 0.0);
                 glVertex3f(0.0, squareSize, squareSize);
 
-                // face
                 getTileColor(matrix[i][j],0.5);
                 glColor3fv(tileColor);
                 glVertex3f(0.0, squareSize, squareSize);
@@ -621,7 +675,6 @@ void displayMatrix() {
                 glVertex3f(squareSize, squareSize, 0.0);
                 glVertex3f(0.0, squareSize, 0.0);
 
-                // face
                 getTileColor(matrix[i][j],0.5);
                 glColor3fv(tileColor);
                 glVertex3f(0.0, 0.0, squareSize);
@@ -629,7 +682,6 @@ void displayMatrix() {
                 glVertex3f(squareSize, 0.0, 0.0);
                 glVertex3f(0.0, 0.0, 0.0);
 
-                // Top face
                 getTileColor(matrix[i][j],1);
                 glColor3fv(tileColor);
                 glVertex3f(0.0, 0.0, squareSize);
