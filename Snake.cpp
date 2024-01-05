@@ -27,7 +27,7 @@ const int foodColor=0xFFFFFF;
 const int emptyColor=0x000000;
 const int barrierColor=0x888888;
 const int boosterColor=0x50F0FF;
-const int baseFoodParticles=500; //200
+const int baseFoodParticles=100; //200
 const int baseBoosters=0; //20
 const int hungerTimer=15;
 const int baseSnakes=200; //160
@@ -563,6 +563,7 @@ void displayMatrix() {
     float playerX=(-1+squareSize*xId(snakes[0].headPosition))+squareSize/2;
     float playerY=(-1+squareSize*yId(snakes[0].headPosition))+squareSize/2;
     float deltaX, deltaY;
+
     int cameraDistanceFactor=snakes[0].segments.size();
     cameraDistanceFactor=min(cameraDistanceFactor,32);
     switch(snakes[0].direction) {
