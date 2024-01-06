@@ -20,14 +20,14 @@ using namespace std;
 
 
 
-const int frameTime = 25;
+const int frameTime = 0;
 
 //const int boardSize=100;
 const int foodColor=0xFFFFFF;
 const int emptyColor=0x000000;
 const int barrierColor=0x888888;
 const int boosterColor=0x50F0FF;
-const int baseFoodParticles=100; //200
+const int baseFoodParticles=200; //200
 const int baseBoosters=0; //20
 const int hungerTimer=15;
 const int baseSnakes=200; //160
@@ -41,8 +41,11 @@ int boardSurface=boardSize*boardSize;
 int matrix[boardSize][boardSize];
 int animationMatrix[boardSize][boardSize];
 int linear[boardSize*boardSize+1];
-
-
+int rainbowColor;
+int rainbowR=255;
+int rainbowG=51;
+int rainbowB=255;
+int rainbowMode=0;
 
 int positionId(int x, int y){
     return x+(boardSize*y)+1;
@@ -134,7 +137,7 @@ Snake::Snake(int startPosition, char startDirection, int colr) {
 void Snake::executeMovement(){
     nutrientLevel--;
     if(boosterCountdown){
-        color=foodColor-rand()%254-1;
+        color=rainbowColor;
         nutrientLevel--;
     }
     else{
@@ -499,6 +502,55 @@ int randomColor(){
     return output;
 
 }
+
+void tickRainbowColor(){
+    switch(rainbowMode){
+        case 0:
+            rainbowB-=51;
+            if(rainbowB==51){
+                rainbowMode++;
+            }
+            break;
+        case 1:
+            rainbowG+=51;
+            if(rainbowG==255){
+                rainbowMode++;
+            }
+            break;
+        case 2:
+            rainbowR-=51;
+            if(rainbowR==51){
+                rainbowMode++;
+            }
+            break;
+        case 3:
+            rainbowB+=51;
+            if(rainbowB==255){
+                rainbowMode++;
+            }
+            break;
+        case 4:
+            rainbowG-=51;
+            if(rainbowG==51){
+                rainbowMode++;
+            }
+            break;
+        case 5:
+            rainbowR+=51;
+            if(rainbowR==255){
+                rainbowMode++;
+            }
+            break;
+    }
+
+    rainbowColor=rainbowR;
+    rainbowColor*=256;
+    rainbowColor+=rainbowG;
+    rainbowColor*=256;
+    rainbowColor+=rainbowB;
+    rainbowMode%=6;
+}
+
 void purgeDeadSnakes(){
     for (int j=0; j<snakes.size(); j++) {
         if(snakes[j].collision==true){
@@ -545,7 +597,13 @@ void renderBar(int nl) {
 
     // Render 2D bar at the top
     glBegin(GL_QUADS);
-    glColor3f(red, green, 0.0f);
+    if(playerBoost){
+            getTileColor(rainbowColor,1);
+            glColor3fv(tileColor);
+    }
+    else{
+        glColor3f(red, green, 0.0f);
+    }
     glVertex2f(0.0f, 590.0f);
     glVertex2f(barWidth, 590.0f);
     glVertex2f(barWidth, 600.0f);
@@ -586,7 +644,7 @@ void displayMatrix() {
     }
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(80.0, 1, squareSize, 100.0);
+    gluPerspective(80.0, 1, squareSize, 128*squareSize);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     gluLookAt(playerX-(4+cameraDistanceFactor)*deltaX, playerY-(4+cameraDistanceFactor)*deltaY, (4+cameraDistanceFactor/2)*squareSize, playerX+3*deltaX, playerY+3*deltaY, 0.0, 0.0, 0.0, 1.0);
@@ -598,14 +656,6 @@ void displayMatrix() {
            if(matrix[i][j]==barrierColor){
                 glBegin(GL_QUADS);
 
-                // Bottom face not drawn
-                /*
-                getTileColor(matrix[i][j],0.1);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, 0.0);
-                glVertex3f(squareSize, 0.0, 0.0);
-                glVertex3f(squareSize, squareSize, 0.0);
-                glVertex3f(0.0, squareSize, 0.0); */
 
                 getTileColor(matrix[i][j],0.67);
                 glColor3fv(tileColor);
@@ -643,17 +693,47 @@ void displayMatrix() {
                 glVertex3f(0.0, squareSize, 2*squareSize);
                 glEnd();
             }
-            else if(matrix[i][j]!=emptyColor){
+          else if(matrix[i][j]==rainbowColor){
                 glBegin(GL_QUADS);
 
-                // Bottom face not drawn
-                /*
-                getTileColor(matrix[i][j],0.1);
+                getTileColor(matrix[i][j],0.95);
                 glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, 0.0);
+                glVertex3f(squareSize, 0.0, squareSize);
                 glVertex3f(squareSize, 0.0, 0.0);
                 glVertex3f(squareSize, squareSize, 0.0);
-                glVertex3f(0.0, squareSize, 0.0); */
+                glVertex3f(squareSize, squareSize, squareSize);
+
+                getTileColor(matrix[i][j],0.95);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, 0.0, squareSize);
+                glVertex3f(0.0, 0.0, 0.0);
+                glVertex3f(0.0, squareSize, 0.0);
+                glVertex3f(0.0, squareSize, squareSize);
+
+                getTileColor(matrix[i][j],0.92);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, squareSize, squareSize);
+                glVertex3f(squareSize, squareSize, squareSize);
+                glVertex3f(squareSize, squareSize, 0.0);
+                glVertex3f(0.0, squareSize, 0.0);
+
+                getTileColor(matrix[i][j],0.92);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, 0.0, squareSize);
+                glVertex3f(squareSize, 0.0, squareSize);
+                glVertex3f(squareSize, 0.0, 0.0);
+                glVertex3f(0.0, 0.0, 0.0);
+
+                getTileColor(matrix[i][j],1);
+                glColor3fv(tileColor);
+                glVertex3f(0.0, 0.0, squareSize);
+                glVertex3f(squareSize, 0.0, squareSize);
+                glVertex3f(squareSize, squareSize, squareSize);
+                glVertex3f(0.0, squareSize, squareSize);
+                glEnd();
+            }
+            else if(matrix[i][j]!=emptyColor){
+                glBegin(GL_QUADS);
 
                 getTileColor(matrix[i][j],0.67);
                 glColor3fv(tileColor);
@@ -732,6 +812,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 }
 
 void update() {
+    tickRainbowColor();
     if(rand()%100==0){
         barrierSetup();
     }
@@ -772,6 +853,7 @@ void update() {
        // displayMatrix();
     }
     tickHungerCountdowns();
+    snakes[0].player=true;
 
 }
 
@@ -808,7 +890,6 @@ int main(){
     renderMatrix();
     displayMatrix();
     while (!glfwWindowShouldClose(window)) {
-        snakes[0].player=true;
         glfwPollEvents();
         update();
         renderLinear();
@@ -823,14 +904,3 @@ int main(){
     return 0;
 }
 
-/*
-
-
-  ooo
- ooooo
-ooooooo
-ooooo
-
-
-
-*/
