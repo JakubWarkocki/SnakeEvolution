@@ -3,7 +3,7 @@
 #include <random>
 #include <iostream>
 #include <vector>
-#define CHUNK_SIZE 16
+#define CHUNK_SIZE 8
 #define CHUNK_BOARD_SIZE 64
 int chunkBoard[CHUNK_BOARD_SIZE][CHUNK_BOARD_SIZE]={1};
 const int splitChance=5;

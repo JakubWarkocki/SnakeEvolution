@@ -13,14 +13,16 @@
 #include <string>
 #include <sstream>
 #include <chrono>
+#include <queue>
 #include "lnetwork.h"
 #include "levelgen.h"
+
 //130
 using namespace std;
 
 
 
-const int frameTime = 50;
+const int frameTime = 25;
 
 const int boardSize=CHUNK_BOARD_SIZE*CHUNK_SIZE;
 const int foodColor=0xFFFFFF;
@@ -33,19 +35,21 @@ const int hungerTimer=15;
 const int baseSnakes=128; //160
 const int firstTreshold=1000;
 const int secondTreshold=1000;
-const int startNutrientLevel=64;
-const int maxNutrientLevel=256;
+const int startNutrientLevel=128;
+const int maxNutrientLevel=512;
 int playerTurn=0;
 int playerBoost=0;
 int boardSurface=boardSize*boardSize;
-int matrix[boardSize][boardSize];
+int matrix[boardSize][boardSize]={0};
 int animationMatrix[boardSize][boardSize];
-int linear[boardSize*boardSize+1];
+int linear[boardSize*boardSize+1]={0};
 int rainbowColor;
 int rainbowR=255;
 int rainbowG=51;
 int rainbowB=255;
 int rainbowMode=0;
+
+
 
 int positionId(int x, int y){
     return x+(boardSize*y)+1;
@@ -57,6 +61,28 @@ int xId(int id){
 
 int yId(int id){
     return (id-1)/boardSize;
+}
+
+
+struct update{
+    int tile;
+    int color;
+};
+queue<update> updateList;
+void scheduleUpdate(int t, int c){
+    update u;
+    u.tile=t;
+    u.color=c;
+    updateList.push(u);
+}
+void executeUpdates(){
+    update u;
+   while(!updateList.empty()){
+        u=updateList.front();
+        linear[u.tile]=u.color;
+        matrix[xId(u.tile)][yId(u.tile)]=u.color;
+        updateList.pop();
+   }
 }
 
 int movement(int id, char direction){
@@ -132,9 +158,10 @@ Snake::Snake(int startPosition, char startDirection, int colr) {
     boosterCountdown=0;
     hungerCountdown=hungerTimer;
     nutrientLevel=startNutrientLevel;
+    scheduleUpdate(startPosition, colr);
 
 }
-void Snake::executeMovement(){
+void Snake::executeMovement(){ //marked
     nutrientLevel--;
     if(boosterCountdown){
         color=rainbowColor;
@@ -144,16 +171,20 @@ void Snake::executeMovement(){
         color=snakeID;
     }
     int tailMemory = segments[segments.size()-1];
+    scheduleUpdate(tailMemory,emptyColor);
     for(int i=segments.size()-1; i>0; i--){
         segments[i]=segments[i-1];
+        scheduleUpdate(segments[i],color);
     }
     headPosition=movement(headPosition, direction);
     segments[0]=headPosition;
+    scheduleUpdate(headPosition,color);
     for(int i=0; i<foodParticles.size(); i++){
         if(headPosition==foodParticles[i]){ // UWAGA
             nutrientLevel+=64;
             nutrientLevel=min(nutrientLevel,256);
             segments.push_back(tailMemory);
+            scheduleUpdate(tailMemory,color);
             foodParticles.erase(foodParticles.begin() + i);
             break;
         }
@@ -170,6 +201,7 @@ void Snake::executeMovement(){
     }
     if(linear[headPosition]==barrierColor){
         collision=true;
+        scheduleUpdate(headPosition,barrierColor);
     }
     if(nutrientLevel<=0){
         collision=true;
@@ -330,11 +362,12 @@ void Snake::aiControl(){
     }
 }
 
-void Snake::tickHungerCountdown(){
+void Snake::tickHungerCountdown(){ //marked
     if(segments.size()>firstTreshold){
         hungerCountdown--;
         if(hungerCountdown==0){
             hungerCountdown=hungerTimer;
+            scheduleUpdate(segments[segments.size()-1],emptyColor);
             segments.erase(segments.begin()+segments.size()-1);
         }
     }
@@ -342,6 +375,7 @@ void Snake::tickHungerCountdown(){
         hungerCountdown--;
         if(hungerCountdown==0){
             hungerCountdown=hungerTimer;
+            scheduleUpdate(segments[segments.size()-1],emptyColor);
             segments.erase(segments.begin()+segments.size()-1);
         }
     }
@@ -352,25 +386,6 @@ void Snake::tickHungerCountdown(){
 vector<Snake> snakes;
 
 
-
-void renderLinear(){
-    for(int i=1; i<=boardSurface; i++){
-        if(linear[i]!=barrierColor){
-        linear[i]=emptyColor;
-        }
-    }
-    for(auto& snake : snakes){
-        for(int segment : snake.segments){
-            linear[segment]=snake.color;
-        }
-    }
-    for(int particle : foodParticles){
-        linear[particle]=foodColor;
-    }
-    for(int particle : boosters){
-        linear[particle]=boosterColor;
-    }
-}
 
 void checkAllCollisions(){
     for (int i = 0; i < snakes.size(); i++) {
@@ -403,11 +418,6 @@ void tickHungerCountdowns(){
     }
 }
 
-void renderMatrix(){
-    for(int i=1; i<=boardSurface; i++){
-        matrix[xId(i)][yId(i)]=linear[i];
-    }
-}
 
 int randomEmptyTile(){
     int n=(rand()%boardSurface)+1;
@@ -419,13 +429,13 @@ int randomEmptyTile(){
 
 void regenerateFood(){
     int n=randomEmptyTile();
-    linear[n]=foodColor;
+    scheduleUpdate(n,foodColor);
     foodParticles.push_back(n);
 }
 
 void regenerateBoosters(){
     int n=randomEmptyTile();
-    linear[n]=boosterColor;
+    scheduleUpdate(n,boosterColor);
     boosters.push_back(n);
 }
 
@@ -551,13 +561,19 @@ void tickRainbowColor(){
     rainbowMode%=6;
 }
 
-void purgeDeadSnakes(){
+void purgeDeadSnakes(){ //marked
     for (int j=0; j<snakes.size(); j++) {
         if(snakes[j].collision==true){
-            for(int i=0; i<snakes[j].segments.size(); i++){
+            if(linear[snakes[j].headPosition]!=barrierColor){
+             scheduleUpdate(snakes[j].headPosition,emptyColor);
+             }
+            for(int i=1; i<snakes[j].segments.size(); i++){
+                scheduleUpdate(snakes[j].segments[i],emptyColor);
                 if(i%3==2){
                     foodParticles.push_back(snakes[j].segments[i]);
+                    scheduleUpdate(snakes[j].segments[i],foodColor);
                 }
+                // scheduleUpdate(snakes[j].segments[i],emptyColor);
             }
             //snakes.erase(remove(snakes.begin()+j));
             int randDir=rand()%3;
@@ -591,9 +607,9 @@ void renderBar(int nl) {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    float barWidth = (float)(nl) / 256.0f * 800.0f;
-    float red = min(1.0f, ((float)(256 - nl) / 256.0f) * 2.0f);
-    float green = min(1.0f, ((float)(nl) / 256.0f) * 2.0f);
+    float barWidth = (float)(nl) / 512.0f * 800.0f;
+    float red = min(1.0f, ((float)(512 - nl) / 512.0f) * 2.0f);
+    float green = min(1.0f, ((float)(nl) / 512.0f) * 2.0f);
 
     // Render 2D bar at the top
     glBegin(GL_QUADS);
@@ -644,106 +660,20 @@ void displayMatrix() {
     }
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(80.0, 1, 0.5*squareSize, 128*squareSize);
+    gluPerspective(100.0, 1, 0.5*squareSize, 128*squareSize);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+   // gluLookAt(playerX, playerY, (25+cameraDistanceFactor/10)*squareSize, playerX, playerY, 0.0, deltaX, deltaY, 0.0);
     gluLookAt(playerX-(4+cameraDistanceFactor)*deltaX, playerY-(4+cameraDistanceFactor)*deltaY, (5+cameraDistanceFactor/2)*squareSize, playerX+3*deltaX, playerY+3*deltaY, 0.0, 0.0, 0.0, 1.0);
-    for (int i = 0; i < boardSize; i++) {
-        for (int j = 0; j < boardSize; j++) {
-
-            if(matrix[i][j]==rainbowColor){
-                glPushMatrix();
-                glTranslatef(-1 + i * squareSize, -1 + j * squareSize, 0.0);
-                glColor3fv(tileColor);
-                glBegin(GL_QUADS);
-
-                getTileColor(matrix[i][j],0.95);
-                glColor3fv(tileColor);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, 0.0);
-                glVertex3f(squareSize, squareSize, 0.0);
-                glVertex3f(squareSize, squareSize, squareSize);
-
-                getTileColor(matrix[i][j],0.95);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(0.0, 0.0, 0.0);
-                glVertex3f(0.0, squareSize, 0.0);
-                glVertex3f(0.0, squareSize, squareSize);
-
-                getTileColor(matrix[i][j],0.92);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, squareSize, squareSize);
-                glVertex3f(squareSize, squareSize, squareSize);
-                glVertex3f(squareSize, squareSize, 0.0);
-                glVertex3f(0.0, squareSize, 0.0);
-
-                getTileColor(matrix[i][j],0.92);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, 0.0);
-                glVertex3f(0.0, 0.0, 0.0);
-
-                getTileColor(matrix[i][j],1);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, squareSize, squareSize);
-                glVertex3f(0.0, squareSize, squareSize);
-                glEnd();
-                glPopMatrix();
-            }
-            else if(matrix[i][j]!=emptyColor&&matrix[i][j]!=barrierColor){
-                glPushMatrix();
-                glTranslatef(-1 + i * squareSize, -1 + j * squareSize, 0.0);
-                glColor3fv(tileColor);
-                glBegin(GL_QUADS);
-
-                getTileColor(matrix[i][j],0.67);
-                glColor3fv(tileColor);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, 0.0);
-                glVertex3f(squareSize, squareSize, 0.0);
-                glVertex3f(squareSize, squareSize, squareSize);
-
-                getTileColor(matrix[i][j],0.67);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(0.0, 0.0, 0.0);
-                glVertex3f(0.0, squareSize, 0.0);
-                glVertex3f(0.0, squareSize, squareSize);
-
-                getTileColor(matrix[i][j],0.5);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, squareSize, squareSize);
-                glVertex3f(squareSize, squareSize, squareSize);
-                glVertex3f(squareSize, squareSize, 0.0);
-                glVertex3f(0.0, squareSize, 0.0);
-
-                getTileColor(matrix[i][j],0.5);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, 0.0);
-                glVertex3f(0.0, 0.0, 0.0);
-
-                getTileColor(matrix[i][j],1);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, squareSize, squareSize);
-                glVertex3f(0.0, squareSize, squareSize);
-                glEnd();
-                glPopMatrix();
-            }
-        }
-    }
+    int lowerY=max(0,(yId(snakes[0].headPosition)/CHUNK_SIZE-128/CHUNK_SIZE));
+    int lowerX=max(0,(xId(snakes[0].headPosition)/CHUNK_SIZE-128/CHUNK_SIZE));
+    int upperY=min(CHUNK_BOARD_SIZE-1,(yId(snakes[0].headPosition)/CHUNK_SIZE+128/CHUNK_SIZE));
+    int upperX=min(CHUNK_BOARD_SIZE-1,(xId(snakes[0].headPosition)/CHUNK_SIZE+128/CHUNK_SIZE));
     float chunkSize=squareSize*CHUNK_SIZE;
-    for (int i = 0; i < CHUNK_BOARD_SIZE; i++) {
-        for (int j = 0; j < CHUNK_BOARD_SIZE; j++) {
+    for (int i = lowerX; i <= upperX; i++) {
+        for (int j = lowerY; j <= upperY; j++) {
 
-            if(chunkBoard[i][j]){
+            if(chunkBoard[i][j]){ //chunkBoard[i][j]
                 glPushMatrix();
                 glTranslatef(-1 + i * chunkSize, -1 + j * chunkSize, 0.0);
                 glColor3fv(tileColor);
@@ -786,6 +716,99 @@ void displayMatrix() {
                 glEnd();
                 glPopMatrix();
             }
+            else{
+                for (int ii = 0; ii < CHUNK_SIZE; ii++) {
+                        for (int jj = 0; jj < CHUNK_SIZE; jj++) {
+
+                            if(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE]==rainbowColor){
+                                glPushMatrix();
+                                glTranslatef(-1 + ii * squareSize + i * chunkSize, -1 + jj * squareSize + j * chunkSize, 0.0);
+                                glColor3fv(tileColor);
+                                glBegin(GL_QUADS);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.95);
+                                glColor3fv(tileColor);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, 0.0);
+                                glVertex3f(squareSize, squareSize, 0.0);
+                                glVertex3f(squareSize, squareSize, squareSize);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.95);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(0.0, 0.0, 0.0);
+                                glVertex3f(0.0, squareSize, 0.0);
+                                glVertex3f(0.0, squareSize, squareSize);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.92);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, squareSize, squareSize);
+                                glVertex3f(squareSize, squareSize, squareSize);
+                                glVertex3f(squareSize, squareSize, 0.0);
+                                glVertex3f(0.0, squareSize, 0.0);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.92);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, 0.0);
+                                glVertex3f(0.0, 0.0, 0.0);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],1);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, squareSize, squareSize);
+                                glVertex3f(0.0, squareSize, squareSize);
+                                glEnd();
+                                glPopMatrix();
+                            }
+                            else if(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE]!=emptyColor){ //&&matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE]!=barrierColor
+                                glPushMatrix();
+                                glTranslatef(-1 + ii * squareSize + i * chunkSize, -1 + jj * squareSize + j * chunkSize, 0.0);
+                                glColor3fv(tileColor);
+                                glBegin(GL_QUADS);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.67);
+                                glColor3fv(tileColor);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, 0.0);
+                                glVertex3f(squareSize, squareSize, 0.0);
+                                glVertex3f(squareSize, squareSize, squareSize);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.67);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(0.0, 0.0, 0.0);
+                                glVertex3f(0.0, squareSize, 0.0);
+                                glVertex3f(0.0, squareSize, squareSize);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.5);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, squareSize, squareSize);
+                                glVertex3f(squareSize, squareSize, squareSize);
+                                glVertex3f(squareSize, squareSize, 0.0);
+                                glVertex3f(0.0, squareSize, 0.0);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.5);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, 0.0);
+                                glVertex3f(0.0, 0.0, 0.0);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],1);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, squareSize, squareSize);
+                                glVertex3f(0.0, squareSize, squareSize);
+                                glEnd();
+                                glPopMatrix();
+                            }
+                        }
+                    }
+            }
         }
     }
     glLoadIdentity();
@@ -798,13 +821,13 @@ void addAiSnake(){
     snakes.push_back(aisnake);
 }
 
-void barrierSetup(){
+void barrierSetup(){//marked
     int x, y;
     for(int i=1; i<=boardSurface; i++){
         x=xId(i)/CHUNK_SIZE;
         y=yId(i)/CHUNK_SIZE;
         if(chunkBoard[x][y]){
-        linear[i]=barrierColor;
+        scheduleUpdate(i,barrierColor);
         }
     }
 }
@@ -828,43 +851,50 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     }
 }
 
-void update() {
+void updateGame() {
     tickRainbowColor();
-    if(rand()%100==0){
-        barrierSetup();
-    }
+    //if(rand()%10000==0){
+     //   barrierSetup();
+   // }
     if(!boostTick){
-        renderLinear();
+        executeUpdates();
         while(foodParticles.size()<baseFoodParticles){
             regenerateFood();
+            executeUpdates();
         }
         while(boosters.size()<baseBoosters){
             regenerateBoosters();
+            executeUpdates();
         }
-        renderMatrix();
       //  displayMatrix();
         executeAiControl();
         executeAllMovements();
+        executeUpdates();
         checkAllCollisions();
         purgeDeadSnakes();
+        executeUpdates();
         boostTick=true;
        // renderMatrix();
        // displayMatrix();
     }
     else{
-        renderLinear();
+        executeUpdates();
         while(foodParticles.size()<baseFoodParticles){
             regenerateFood();
+            executeUpdates();
         }
         while(boosters.size()<baseBoosters){
             regenerateBoosters();
+            executeUpdates();
         }
-        renderMatrix();
+        executeUpdates();
       // displayMatrix();
         executeBoosterAiControl();
         executeBoosterMovements();
+        executeUpdates();
         checkAllCollisions();
         purgeDeadSnakes();
+        executeUpdates();
         boostTick=false;
       //  renderMatrix();
        // displayMatrix();
@@ -892,10 +922,10 @@ int main(){
     glfwSwapInterval(1);
     glShadeModel(GL_SMOOTH);
     barrierSetup();
-    renderLinear();
+        executeUpdates();
     while(snakes.size()<baseSnakes){;
         addAiSnake();
-        renderLinear();
+        executeUpdates();
     }
     snakes[0].player=true;
     while(foodParticles.size()<baseFoodParticles){
@@ -904,13 +934,13 @@ int main(){
     while(boosters.size()<baseBoosters){
         regenerateBoosters();
     }
-    renderMatrix();
+    executeUpdates();
     displayMatrix();
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        update();
-        renderLinear();
-        renderMatrix();
+        updateGame();
+        executeUpdates();
+       // renderMatrix();
         displayMatrix();
         glfwSwapBuffers(window);
         usleep(frameTime*1000);
