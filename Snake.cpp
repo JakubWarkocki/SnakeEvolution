@@ -20,7 +20,7 @@ using namespace std;
 
 
 
-const int frameTime = 50;
+const int frameTime = 30;
 
 const int boardSize=CHUNK_BOARD_SIZE*CHUNK_SIZE;
 const int foodColor=0xFFFFFF;
@@ -644,106 +644,20 @@ void displayMatrix() {
     }
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(80.0, 1, 0.5*squareSize, 128*squareSize);
+    gluPerspective(100.0, 1, 0.5*squareSize, 128*squareSize);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+   // gluLookAt(playerX, playerY, (25+cameraDistanceFactor/10)*squareSize, playerX, playerY, 0.0, deltaX, deltaY, 0.0);
     gluLookAt(playerX-(4+cameraDistanceFactor)*deltaX, playerY-(4+cameraDistanceFactor)*deltaY, (5+cameraDistanceFactor/2)*squareSize, playerX+3*deltaX, playerY+3*deltaY, 0.0, 0.0, 0.0, 1.0);
-    for (int i = 0; i < boardSize; i++) {
-        for (int j = 0; j < boardSize; j++) {
-
-            if(matrix[i][j]==rainbowColor){
-                glPushMatrix();
-                glTranslatef(-1 + i * squareSize, -1 + j * squareSize, 0.0);
-                glColor3fv(tileColor);
-                glBegin(GL_QUADS);
-
-                getTileColor(matrix[i][j],0.95);
-                glColor3fv(tileColor);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, 0.0);
-                glVertex3f(squareSize, squareSize, 0.0);
-                glVertex3f(squareSize, squareSize, squareSize);
-
-                getTileColor(matrix[i][j],0.95);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(0.0, 0.0, 0.0);
-                glVertex3f(0.0, squareSize, 0.0);
-                glVertex3f(0.0, squareSize, squareSize);
-
-                getTileColor(matrix[i][j],0.92);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, squareSize, squareSize);
-                glVertex3f(squareSize, squareSize, squareSize);
-                glVertex3f(squareSize, squareSize, 0.0);
-                glVertex3f(0.0, squareSize, 0.0);
-
-                getTileColor(matrix[i][j],0.92);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, 0.0);
-                glVertex3f(0.0, 0.0, 0.0);
-
-                getTileColor(matrix[i][j],1);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, squareSize, squareSize);
-                glVertex3f(0.0, squareSize, squareSize);
-                glEnd();
-                glPopMatrix();
-            }
-            else if(matrix[i][j]!=emptyColor&&matrix[i][j]!=barrierColor){
-                glPushMatrix();
-                glTranslatef(-1 + i * squareSize, -1 + j * squareSize, 0.0);
-                glColor3fv(tileColor);
-                glBegin(GL_QUADS);
-
-                getTileColor(matrix[i][j],0.67);
-                glColor3fv(tileColor);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, 0.0);
-                glVertex3f(squareSize, squareSize, 0.0);
-                glVertex3f(squareSize, squareSize, squareSize);
-
-                getTileColor(matrix[i][j],0.67);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(0.0, 0.0, 0.0);
-                glVertex3f(0.0, squareSize, 0.0);
-                glVertex3f(0.0, squareSize, squareSize);
-
-                getTileColor(matrix[i][j],0.5);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, squareSize, squareSize);
-                glVertex3f(squareSize, squareSize, squareSize);
-                glVertex3f(squareSize, squareSize, 0.0);
-                glVertex3f(0.0, squareSize, 0.0);
-
-                getTileColor(matrix[i][j],0.5);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, 0.0);
-                glVertex3f(0.0, 0.0, 0.0);
-
-                getTileColor(matrix[i][j],1);
-                glColor3fv(tileColor);
-                glVertex3f(0.0, 0.0, squareSize);
-                glVertex3f(squareSize, 0.0, squareSize);
-                glVertex3f(squareSize, squareSize, squareSize);
-                glVertex3f(0.0, squareSize, squareSize);
-                glEnd();
-                glPopMatrix();
-            }
-        }
-    }
+    int lowerY=max(0,(yId(snakes[0].headPosition)/CHUNK_SIZE-128/CHUNK_SIZE));
+    int lowerX=max(0,(xId(snakes[0].headPosition)/CHUNK_SIZE-128/CHUNK_SIZE));
+    int upperY=min(CHUNK_BOARD_SIZE-1,(yId(snakes[0].headPosition)/CHUNK_SIZE+128/CHUNK_SIZE));
+    int upperX=min(CHUNK_BOARD_SIZE-1,(xId(snakes[0].headPosition)/CHUNK_SIZE+128/CHUNK_SIZE));
     float chunkSize=squareSize*CHUNK_SIZE;
-    for (int i = 0; i < CHUNK_BOARD_SIZE; i++) {
-        for (int j = 0; j < CHUNK_BOARD_SIZE; j++) {
+    for (int i = lowerX; i <= upperX; i++) {
+        for (int j = lowerY; j <= upperY; j++) {
 
-            if(chunkBoard[i][j]){
+            if(chunkBoard[i][j]){ //chunkBoard[i][j]
                 glPushMatrix();
                 glTranslatef(-1 + i * chunkSize, -1 + j * chunkSize, 0.0);
                 glColor3fv(tileColor);
@@ -785,6 +699,99 @@ void displayMatrix() {
                 glVertex3f(0.0, chunkSize, squareSize*2);
                 glEnd();
                 glPopMatrix();
+            }
+            else{
+                for (int ii = 0; ii < CHUNK_SIZE; ii++) {
+                        for (int jj = 0; jj < CHUNK_SIZE; jj++) {
+
+                            if(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE]==rainbowColor){
+                                glPushMatrix();
+                                glTranslatef(-1 + ii * squareSize + i * chunkSize, -1 + jj * squareSize + j * chunkSize, 0.0);
+                                glColor3fv(tileColor);
+                                glBegin(GL_QUADS);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.95);
+                                glColor3fv(tileColor);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, 0.0);
+                                glVertex3f(squareSize, squareSize, 0.0);
+                                glVertex3f(squareSize, squareSize, squareSize);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.95);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(0.0, 0.0, 0.0);
+                                glVertex3f(0.0, squareSize, 0.0);
+                                glVertex3f(0.0, squareSize, squareSize);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.92);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, squareSize, squareSize);
+                                glVertex3f(squareSize, squareSize, squareSize);
+                                glVertex3f(squareSize, squareSize, 0.0);
+                                glVertex3f(0.0, squareSize, 0.0);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.92);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, 0.0);
+                                glVertex3f(0.0, 0.0, 0.0);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],1);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, squareSize, squareSize);
+                                glVertex3f(0.0, squareSize, squareSize);
+                                glEnd();
+                                glPopMatrix();
+                            }
+                            else if(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE]!=emptyColor){ //&&matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE]!=barrierColor
+                                glPushMatrix();
+                                glTranslatef(-1 + ii * squareSize + i * chunkSize, -1 + jj * squareSize + j * chunkSize, 0.0);
+                                glColor3fv(tileColor);
+                                glBegin(GL_QUADS);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.67);
+                                glColor3fv(tileColor);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, 0.0);
+                                glVertex3f(squareSize, squareSize, 0.0);
+                                glVertex3f(squareSize, squareSize, squareSize);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.67);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(0.0, 0.0, 0.0);
+                                glVertex3f(0.0, squareSize, 0.0);
+                                glVertex3f(0.0, squareSize, squareSize);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.5);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, squareSize, squareSize);
+                                glVertex3f(squareSize, squareSize, squareSize);
+                                glVertex3f(squareSize, squareSize, 0.0);
+                                glVertex3f(0.0, squareSize, 0.0);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],0.5);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, 0.0);
+                                glVertex3f(0.0, 0.0, 0.0);
+
+                                getTileColor(matrix[ii+i*CHUNK_SIZE][jj+j*CHUNK_SIZE],1);
+                                glColor3fv(tileColor);
+                                glVertex3f(0.0, 0.0, squareSize);
+                                glVertex3f(squareSize, 0.0, squareSize);
+                                glVertex3f(squareSize, squareSize, squareSize);
+                                glVertex3f(0.0, squareSize, squareSize);
+                                glEnd();
+                                glPopMatrix();
+                            }
+                        }
+                    }
             }
         }
     }
