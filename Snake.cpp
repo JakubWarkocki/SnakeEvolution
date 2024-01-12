@@ -27,10 +27,10 @@ const int foodColor=0xFFFFFF;
 const int emptyColor=0x000000;
 const int barrierColor=0x888888;
 const int boosterColor=0x50F0FF;
-const int baseFoodParticles=256; //200
+const int baseFoodParticles=1024; //200
 const int baseBoosters=0; //20
 const int hungerTimer=15;
-const int baseSnakes=128; //160
+const int baseSnakes=512; //160
 const int firstTreshold=1000;
 const int secondTreshold=1000;
 const int startNutrientLevel=64;
@@ -644,7 +644,7 @@ void displayMatrix() {
     }
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(100.0, 1, 0.5*squareSize, 128*squareSize);
+    gluPerspective(100.0, 1, 0.5*squareSize, 256*squareSize);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
    // gluLookAt(playerX, playerY, (25+cameraDistanceFactor/10)*squareSize, playerX, playerY, 0.0, deltaX, deltaY, 0.0);
