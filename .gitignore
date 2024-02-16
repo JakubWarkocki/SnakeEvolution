@@ -1,4 +1,6 @@
 Game/Snake
-Game/Snake.o
 nnsave.txt
+Game/Snake.o
+Training/Snake.o
+Training/Snake
 *.log
