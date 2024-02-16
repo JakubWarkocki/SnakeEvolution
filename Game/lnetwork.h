@@ -146,7 +146,7 @@ int lnetwork::decision(double data[]){
 
 
 void loadNetwork(){
-    ifstream load("nnsave.txt");
+    ifstream load("../nnsave.txt");
     string inpt;
     getline(load,inpt);
     stringstream str(inpt);

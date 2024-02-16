@@ -14,7 +14,7 @@
 #include <sstream>
 #include <chrono>
 #include "lnetwork.h"
-#include "levelgen.h"
+#include "../Shared/levelgen.h"
 //130
 using namespace std;
 

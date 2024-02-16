@@ -1,6 +1,4 @@
-Saves
-Snake
-Snake.o
+Game/Snake
+Game/Snake.o
 nnsave.txt
 *.log
-temp
