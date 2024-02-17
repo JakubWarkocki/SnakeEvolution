@@ -1,0 +1,6 @@
+player 0xFF55FF
+species1 0xFF1100
+species2 0x00FF00
+species3 0x00FFFF
+species4 0xFF0044
+

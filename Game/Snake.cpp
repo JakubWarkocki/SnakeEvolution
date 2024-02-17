@@ -27,10 +27,10 @@ const int foodColor=0xFFFFFF;
 const int emptyColor=0x000000;
 const int barrierColor=0x888888;
 const int boosterColor=0x50F0FF;
-const int baseFoodParticles=1024; //200
+const int baseFoodParticles=16*CHUNK_BOARD_SIZE;  //200
 const int baseBoosters=0; //20
 const int hungerTimer=15;
-const int baseSnakes=512; //160
+const int baseSnakes=16*CHUNK_BOARD_SIZE;  //160
 const int firstTreshold=1000;
 const int secondTreshold=1000;
 const int startNutrientLevel=64;
@@ -41,6 +41,8 @@ int boardSurface=boardSize*boardSize;
 int matrix[boardSize][boardSize];
 int animationMatrix[boardSize][boardSize];
 int linear[boardSize*boardSize+1];
+int speciesColors[SPECIES];
+int playerColor;
 int rainbowColor;
 int rainbowR=255;
 int rainbowG=51;
@@ -100,9 +102,10 @@ vector<int> boosters;
 class Snake{
     public:
         bool player;
+        int snakeSpecies;
         int headPosition;
         vector<int> segments;
-        double envData[SCOPE];
+        double envData[8];
         int snakeID;
         int color;
         char direction;
@@ -111,7 +114,7 @@ class Snake{
         int boosterCountdown;
         int nutrientLevel;
         lnetwork controlAI;
-        Snake(int startPosition, char startDirection, int colr);
+        Snake(int startPosition, char startDirection, bool p);
         double flag(int tile, int distance);
         void scanEnv();
         void executeMovement();
@@ -123,17 +126,27 @@ class Snake{
 
 };
 
-Snake::Snake(int startPosition, char startDirection, int colr) {
-    player = false;
+Snake::Snake(int startPosition, char startDirection, bool p) {
+    player = p;
+    snakeSpecies=rand()%SPECIES;
+    controlAI.species=snakeSpecies;
+    controlAI.load();
     headPosition = startPosition;
     direction = startDirection;
-    snakeID = colr;
-    color = colr;
+    if(!p){
+        snakeID = speciesColors[snakeSpecies];
+        color = speciesColors[snakeSpecies];
+    }
+    else{
+        snakeID = playerColor;
+        color = playerColor;
+    }
     segments.push_back(startPosition);
     collision=false;
     boosterCountdown=0;
     hungerCountdown=hungerTimer;
     nutrientLevel=startNutrientLevel;
+
 
 }
 void Snake::executeMovement(){
@@ -443,6 +456,7 @@ void executeBoosterAiControl(){
     for(int i=0; i<snakes.size(); i++){
         if(snakes[i].boosterCountdown){
         snakes[i].aiControl();
+        snakes[i].boosterCountdown=1;
         }
     }
 }
@@ -505,6 +519,19 @@ int randomColor(){
 
 }
 
+void defineSnakeColors(){
+    ifstream colorconfig("../colorconfig.txt");
+    string line, comm;
+    getline(colorconfig, line);
+    stringstream str(line);
+    str >> comm >> hex >> playerColor;
+    for(int i=0; i<SPECIES; i++){
+        getline(colorconfig, line);
+        stringstream str(line);
+        str >> comm >> hex >> speciesColors[i];
+    }
+}
+
 void tickRainbowColor(){
     switch(rainbowMode){
         case 0:
@@ -563,7 +590,7 @@ void purgeDeadSnakes(){
             }
             //snakes.erase(remove(snakes.begin()+j));
             int randDir=rand()%3;
-            Snake aisnake(randomEmptyTile(),'U', randomColor());
+            Snake aisnake(randomEmptyTile(),'U', snakes[j].player);
             snakes[j]=aisnake;
             switch(randDir){
                 case 0:
@@ -803,7 +830,7 @@ void displayMatrix() {
 }
 
 void addAiSnake(){
-    Snake aisnake(randomEmptyTile(),'D', randomColor());
+    Snake aisnake(randomEmptyTile(),'D', false);
     snakes.push_back(aisnake);
 }
 
@@ -879,7 +906,6 @@ void update() {
        // displayMatrix();
     }
     tickHungerCountdowns();
-    snakes[0].player=true;
 
 }
 
@@ -900,6 +926,7 @@ int main(){
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSwapInterval(1);
     glShadeModel(GL_SMOOTH);
+        defineSnakeColors();
     barrierSetup();
     renderLinear();
     while(snakes.size()<baseSnakes){;
@@ -907,6 +934,8 @@ int main(){
         renderLinear();
     }
     snakes[0].player=true;
+    snakes[0].snakeID=playerColor;
+    snakes[0].color=playerColor;
     while(foodParticles.size()<baseFoodParticles){
         regenerateFood();
     }

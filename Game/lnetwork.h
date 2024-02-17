@@ -6,15 +6,13 @@
 #include <fstream>
 #include <iomanip>
 #include <string>
-#define SCOPE 8
+#define SCOPE 8 //(2*RANGE+1)*(2*RANGE+1)
 #define LAYERS 3
+#define SPECIES 4
 using namespace std;
 
-int topScore=0;
-int antiLottery=0;
-double baseBiases[LAYERS][2*SCOPE]={0};
-double baseWeights[LAYERS][2*SCOPE][2*SCOPE]={0};
-double prec=100;
+double baseBiases[LAYERS][2*SCOPE][SPECIES]={0};
+double baseWeights[LAYERS][2*SCOPE][2*SCOPE][SPECIES]={0};
 class lnetwork{
 
     private:
@@ -23,16 +21,13 @@ class lnetwork{
         double biases[LAYERS][2*SCOPE];
         double weights[LAYERS][2*SCOPE][2*SCOPE]; //Destination layer (in calcspace) ,Destination Id (in calcspace) ,Source ID (in calcspace or input)
         double calcSpace[LAYERS][2*(SCOPE)];
-        int score;
         double neuronFunction(double x);
-        void mutateBiases();
-        void mutateWeights();
         void calculateOutput();
     public:
-        lnetwork();
+        void load();
         ~lnetwork();
+        int species;
         int decision(double data[]);
-        void reward(int number);
 
 };
 
@@ -43,23 +38,6 @@ double lnetwork::neuronFunction(double x){
 
 }
 
-void lnetwork::mutateBiases(){
-    for(int i=0; i<LAYERS-1; i++){
-        for(int j=0; j<2*(SCOPE); j++){
-            biases[i][j]+=(rand()%201-100)/prec;
-        }
-    }
-}
-
-void lnetwork::mutateWeights(){
-    for(int i=0; i<LAYERS; i++){
-        for(int j=0; j<2*(SCOPE); j++){
-            for(int y=0; y<2*(SCOPE); y++){
-              weights[i][j][y]+=(rand()%201-100)/prec;
-            }
-        }
-    }
-}
 
 void lnetwork::calculateOutput(){
     int i;
@@ -93,22 +71,20 @@ void lnetwork::calculateOutput(){
     }
 }
 
-lnetwork::lnetwork(){
+void lnetwork::load(){
     for(int i = 0; i < LAYERS; i++){
         for(int j = 0; j < 2*(SCOPE); j++){
-            biases[i][j]=baseBiases[i][j];
+            biases[i][j]=baseBiases[i][j][species];
             calcSpace[i][j]=0;
         }
     }
     for(int i = 0; i < LAYERS; i++){
         for(int j = 0; j < 2*(SCOPE); j++){
             for(int y = 0; y < 2*(SCOPE); y++){
-                weights[i][j][y]=baseWeights[i][j][y];
+                weights[i][j][y]=baseWeights[i][j][y][species];
             }
         }
     }
-
-
 }
 
 
@@ -116,9 +92,6 @@ lnetwork::~lnetwork(){
 }
 
 
-void lnetwork::reward(int number){
-  score+=number;
-}
 
 
 int lnetwork::decision(double data[]){
@@ -148,28 +121,30 @@ int lnetwork::decision(double data[]){
 void loadNetwork(){
     ifstream load("../nnsave.txt");
     string inpt;
-    getline(load,inpt);
-    stringstream str(inpt);
-    str >> topScore;
-    for(int i = 0; i < LAYERS-1; i++){
-        for(int j = 0; j < 2*(SCOPE); j++){
-            getline(load,inpt);
-            stringstream str(inpt);
-            str>>baseBiases[i][j];
-        }
-    }
-    for(int i = 0; i < LAYERS; i++){
-        for(int j = 0; j < 2*(SCOPE); j++){
-            for(int y = 0; y < 2*(SCOPE); y++){
+    int x;
+    for(int s=0;s<SPECIES;s++){
+        getline(load,inpt);
+        stringstream str(inpt);
+        str >> x;
+        for(int i = 0; i < LAYERS-1; i++){
+            for(int j = 0; j < 2*(SCOPE); j++){
                 getline(load,inpt);
                 stringstream str(inpt);
-                str>>baseWeights[i][j][y];
+                str>>baseBiases[i][j][s];
+            }
+        }
+        for(int i = 0; i < LAYERS; i++){
+            for(int j = 0; j < 2*(SCOPE); j++){
+                for(int y = 0; y < 2*(SCOPE); y++){
+                    getline(load,inpt);
+                    stringstream str(inpt);
+                    str>>baseWeights[i][j][y][s];
+                }
             }
         }
     }
 
 
 }
-
 
 #endif // LNETWORK_H

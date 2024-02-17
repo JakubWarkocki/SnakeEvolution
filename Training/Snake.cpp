@@ -10,7 +10,7 @@
 #include <string>
 #include <sstream>
 #include "lnetwork.h"
-#include "levelgen.h"
+#include "../Shared/levelgen.h"
 //#define boardSize CHUNK_SIZE*CHUNK_BOARD_SIZE
 //130
 using namespace std;
@@ -454,9 +454,11 @@ void executeBoosterAiControl(){
     for(int i=0; i<snakes.size(); i++){
         if(snakes[i].boosterCountdown){
         snakes[i].aiControl();
+        snakes[i].boosterCountdown=1;
         }
     }
 }
+
 
 //GRAPHICS
 
@@ -517,8 +519,15 @@ int randomColor(){
 }
 
 void defineSnakeColors(){
+    ifstream colorconfig("../colorconfig.txt");
+    string line, comm;
+    getline(colorconfig, line);
+    stringstream str(line);
+    str >> comm >> comm;
     for(int i=0; i<SPECIES; i++){
-        speciesColors[i]=randomColor();
+        getline(colorconfig, line);
+        stringstream str(line);
+        str >> comm >> hex >> speciesColors[i];
     }
 }
 

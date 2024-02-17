@@ -178,7 +178,7 @@ int lnetwork::decision(double data[]){
 
 
 void loadNetwork(){
-    ifstream load("nnsave.txt");
+    ifstream load("../nnsave.txt");
     string inpt;
     for(int s=0;s<SPECIES;s++){
         getline(load,inpt);
@@ -207,7 +207,7 @@ void loadNetwork(){
 
 void saveNetwork(){
 
-    ofstream save("nnsave.txt");
+    ofstream save("../nnsave.txt");
     for(int s=0; s<SPECIES; s++){
     save << topScore[s]<<'\n';
     save << fixed << setprecision(3);
