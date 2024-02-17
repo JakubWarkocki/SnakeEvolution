@@ -67,35 +67,38 @@ int yId(int id){
 
 int movement(int id, char direction){
     switch(direction) {
-    case 'U':
-        return id+boardSize;
-        break;
-    case 'R':
-        return id+1;
-        break;
-    case 'D':
-        return id-boardSize;
-        break;
-    case 'L':
-        return id-1;
-        break;
+        case 'U':
+            return id+boardSize;
+            break;
+        case 'R':
+            return id+1;
+            break;
+        case 'D':
+            return id-boardSize;
+            break;
+        case 'L':
+            return id-1;
+            break;
+    }
+    return 0;
 }
-}
+
 char clockwise(char direction){
     switch(direction) {
-    case 'U':
-        return 'R';
-        break;
-    case 'R':
-        return 'D';
-        break;
-    case 'D':
-        return 'L';
-        break;
-    case 'L':
-        return 'U';
-        break;
-}
+            case 'U':
+                return 'R';
+                break;
+            case 'R':
+                return 'D';
+                break;
+            case 'D':
+                return 'L';
+                break;
+            case 'L':
+                return 'U';
+                break;
+    }
+    return 0;
 }
 vector<int> foodParticles;
 vector<int> boosters;

@@ -74,6 +74,7 @@ int movement(int id, char direction){
         return id-1;
         break;
 }
+return 0;
 }
 char clockwise(char direction){
     switch(direction) {
@@ -90,6 +91,7 @@ char clockwise(char direction){
         return 'U';
         break;
 }
+return 0;
 }
 vector<int> foodParticles;
 vector<int> boosters;
