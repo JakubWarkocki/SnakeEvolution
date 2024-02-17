@@ -111,10 +111,10 @@ void generateLevel(int seed){
                     chunkBoard[i][j]=1;
                 }
             }
-            diggers.push_back(Digger(CHUNK_BOARD_SIZE/2,CHUNK_BOARD_SIZE/2,0,256));
-            diggers.push_back(Digger(CHUNK_BOARD_SIZE/2,CHUNK_BOARD_SIZE/2,1,256));
-            diggers.push_back(Digger(CHUNK_BOARD_SIZE/2,CHUNK_BOARD_SIZE/2,2,256));
-            diggers.push_back(Digger(CHUNK_BOARD_SIZE/2,CHUNK_BOARD_SIZE/2,3,256));
+            diggers.push_back(Digger(CHUNK_BOARD_SIZE/2,CHUNK_BOARD_SIZE/2,0,CHUNK_BOARD_SIZE*4));
+            diggers.push_back(Digger(CHUNK_BOARD_SIZE/2,CHUNK_BOARD_SIZE/2,1,CHUNK_BOARD_SIZE*4));
+            diggers.push_back(Digger(CHUNK_BOARD_SIZE/2,CHUNK_BOARD_SIZE/2,2,CHUNK_BOARD_SIZE*4));
+            diggers.push_back(Digger(CHUNK_BOARD_SIZE/2,CHUNK_BOARD_SIZE/2,3,CHUNK_BOARD_SIZE*4));
             while(true){
                 run=0;
                 for (auto& digger : diggers) {

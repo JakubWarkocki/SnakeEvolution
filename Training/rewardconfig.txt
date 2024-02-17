@@ -1,0 +1,48 @@
+species1
+foodReward= 64
+boosterReward= 0
+wallReward= -256
+selfCollisionReward= -2560
+otherCollisionReward= -256
+huntingReward= 0
+headCollisionReward= -50
+starvationReward= -256
+survivalReward= 0
+speedReward= 0
+turnReward= 0
+species2
+foodReward= 64
+boosterReward= 0
+wallReward= -256
+selfCollisionReward= -2560
+otherCollisionReward= -256
+huntingReward= 256
+headCollisionReward= -50
+starvationReward= -256
+survivalReward= 0
+speedReward= 20
+turnReward= 0
+species3
+foodReward= 64
+boosterReward= 0
+wallReward= -256
+selfCollisionReward= -2560
+otherCollisionReward= -256
+huntingReward= 500
+headCollisionReward= -50
+starvationReward= -256
+survivalReward= 0
+speedReward= 0
+turnReward= -5
+species4
+foodReward= 64
+boosterReward= 0
+wallReward= -256
+selfCollisionReward= -2560
+otherCollisionReward= -256
+huntingReward= 0
+headCollisionReward= -50
+starvationReward= -256
+survivalReward= 0
+speedReward= -1
+turnReward= 2
