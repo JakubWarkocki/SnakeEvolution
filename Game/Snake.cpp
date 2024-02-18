@@ -20,7 +20,7 @@ using namespace std;
 
 
 
-const int frameTime = 30;
+const int frameTime = 20;
 
 const int boardSize=CHUNK_BOARD_SIZE*CHUNK_SIZE;
 const int foodColor=0xFFFFFF;
