@@ -1,6 +1,15 @@
-player 0xFF55FF
-species1 0xFF1100
-species2 0x00FF00
-species3 0x00FFFF
-species4 0xFF0044
-
+player
+3
+0xFF55FF
+species1
+1
+0xFF1100
+species2
+2
+0x00FF00
+species3
+3
+0x00FFFF
+species4
+1
+0xDD00FF

@@ -46,17 +46,20 @@ int turnReward[SPECIES];
 const int startNutrientLevel=64;
 const int maxNutrientLevel=256;
 const int boardSize=CHUNK_SIZE*CHUNK_BOARD_SIZE;
-int rainbowColor;
-int rainbowR=255;
-int rainbowG=51;
-int rainbowB=255;
-int rainbowMode=0;
 int elapsedTicks=0;
 int displayActive=0;
 int speciesColors[SPECIES];
+int speciesAnimations[SPECIES];
 int boardSurface=boardSize*boardSize;
 int matrix[boardSize][boardSize];
 int linear[boardSize*boardSize+1];
+
+
+vector<vector<int>> animations;
+vector<int> animationClock;
+vector<int> animationColors;
+
+
 int positionId(int x, int y){
     return x+(boardSize*y)+1;
 }
@@ -113,6 +116,7 @@ class Snake{
         double envData[8];
         int snakeID;
         int color;
+        int animationType;
         char direction;
         bool collision;
         int hungerCountdown;
@@ -139,6 +143,7 @@ Snake::Snake(int startPosition, char startDirection) {
     direction = startDirection;
     snakeID = speciesColors[snakeSpecies];
     color = speciesColors[snakeSpecies];
+    animationType = speciesAnimations[snakeSpecies];
     segments.push_back(startPosition);
     collision=false;
     boosterCountdown=0;
@@ -151,7 +156,7 @@ void Snake::executeMovement(){
     nutrientLevel--;
     controlAI.reward(survivalReward[snakeSpecies]);
     if(boosterCountdown){
-        color=rainbowColor;
+        color=animationColors[animationType];
         nutrientLevel--;
         controlAI.reward(speedReward[snakeSpecies]);
        // boosterCountdown--;
@@ -521,62 +526,61 @@ int randomColor(){
 void defineSnakeColors(){
     ifstream colorconfig("../colorconfig.txt");
     string line, comm;
-    getline(colorconfig, line);
-    stringstream str(line);
-    str >> comm >> comm;
+        getline(colorconfig, line);
+        stringstream str(line);
+        str >> comm;
+        getline(colorconfig, line);
+        stringstream str2(line);
+        str2 >> comm;
+        getline(colorconfig, line);
+        stringstream str3(line);
+        str3 >> comm;
     for(int i=0; i<SPECIES; i++){
         getline(colorconfig, line);
         stringstream str(line);
-        str >> comm >> hex >> speciesColors[i];
+        str >> comm;
+        getline(colorconfig, line);
+        stringstream str2(line);
+        str2 >>  speciesAnimations[i];
+        getline(colorconfig, line);
+        stringstream str3(line);
+        str3 >> hex >> speciesColors[i];
+        speciesAnimations[i]--;
     }
 }
 
-void tickRainbowColor(){
-    switch(rainbowMode){
-        case 0:
-            rainbowB-=51;
-            if(rainbowB==51){
-                rainbowMode++;
-            }
-            break;
-        case 1:
-            rainbowG+=51;
-            if(rainbowG==255){
-                rainbowMode++;
-            }
-            break;
-        case 2:
-            rainbowR-=51;
-            if(rainbowR==51){
-                rainbowMode++;
-            }
-            break;
-        case 3:
-            rainbowB+=51;
-            if(rainbowB==255){
-                rainbowMode++;
-            }
-            break;
-        case 4:
-            rainbowG-=51;
-            if(rainbowG==51){
-                rainbowMode++;
-            }
-            break;
-        case 5:
-            rainbowR+=51;
-            if(rainbowR==255){
-                rainbowMode++;
-            }
-            break;
+void defineAnimations(){
+    animations.clear();
+    animationClock.clear();
+    animationColors.clear();
+    ifstream aniconfig("../animationconfig.txt");
+    string line, comm;
+    int n, clr;
+    while(getline(aniconfig, line)){
+        getline(aniconfig,line);
+        stringstream str(line);
+        str >> n;
+        vector<int> v;
+        for(int i=0; i<n; i++){
+            getline(aniconfig, line);
+            stringstream str(line);
+            str >> hex >> clr;
+            v.push_back(clr);
+        }
+        animations.push_back(v);
+        animationClock.push_back(0);
+        animationColors.push_back(animations[animations.size()-1][0]);
     }
 
-    rainbowColor=rainbowR;
-    rainbowColor*=256;
-    rainbowColor+=rainbowG;
-    rainbowColor*=256;
-    rainbowColor+=rainbowB;
-    rainbowMode%=6;
+
+}
+
+void tickAnimations(){
+    for(int i=0; i<animations.size(); i++){
+            animationClock[i]++;
+            animationClock[i]%=(animations[i].size());
+            animationColors[i]=animations[i][animationClock[i]];
+    }
 }
 
 void purgeDeadSnakes(){
@@ -673,7 +677,7 @@ void barrierSetup(){
 
 bool boostTick=false;
 void update() {
-    tickRainbowColor();
+    tickAnimations();
     if(rand()%100==0){
         barrierSetup();
     }
@@ -686,8 +690,6 @@ void update() {
         while(boosters.size()<baseBoosters){
             regenerateBoosters();
         }
-       // renderMatrix();
-       // displayMatrix();
         executeAiControl();
         executeAllMovements();
         checkAllCollisions();
@@ -705,8 +707,6 @@ void update() {
         while(boosters.size()<baseBoosters){
             regenerateBoosters();
         }
-      //  renderMatrix();
-      //  displayMatrix();
         executeBoosterAiControl();
         executeBoosterMovements();
         checkAllCollisions();
@@ -779,6 +779,7 @@ int main(){
     glfwSetKeyCallback(window, keyCallback);
     loadRewardConfig();
     defineSnakeColors();
+    defineAnimations();
     barrierSetup();
     renderLinear();
     while(snakes.size()<baseSnakes){;
